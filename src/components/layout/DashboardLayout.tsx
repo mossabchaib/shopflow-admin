@@ -1,9 +1,10 @@
 import { ReactNode } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Moon, Sun, Bell } from "lucide-react";
+import { Moon, Sun, Bell, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -11,6 +12,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isDark, setIsDark] = useState(false);
+  const { signOut, user } = useAuth();
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
@@ -30,16 +32,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsDark(!isDark)}
-                className="text-muted-foreground"
-              >
+              <Button variant="ghost" size="icon" onClick={() => setIsDark(!isDark)} className="text-muted-foreground">
                 {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </Button>
+              <Button variant="ghost" size="icon" onClick={signOut} className="text-muted-foreground" title="Sign Out">
+                <LogOut className="h-5 w-5" />
+              </Button>
               <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold ml-2">
-                A
+                {user?.email?.[0]?.toUpperCase() || "A"}
               </div>
             </div>
           </header>
