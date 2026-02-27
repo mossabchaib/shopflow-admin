@@ -1,21 +1,45 @@
-import { Search, Eye } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Eye, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-const customers = [
-  { id: "1", name: "John Smith", email: "john@example.com", orders: 12, spent: "$1,245.00", date: "2025-11-15", avatar: "JS" },
-  { id: "2", name: "Sarah Connor", email: "sarah@example.com", orders: 8, spent: "$892.50", date: "2025-12-03", avatar: "SC" },
-  { id: "3", name: "Mike Wilson", email: "mike@example.com", orders: 23, spent: "$3,450.00", date: "2025-08-22", avatar: "MW" },
-  { id: "4", name: "Emma Davis", email: "emma@example.com", orders: 5, spent: "$412.80", date: "2026-01-10", avatar: "ED" },
-  { id: "5", name: "Alex Brown", email: "alex@example.com", orders: 17, spent: "$2,180.40", date: "2025-09-18", avatar: "AB" },
-];
+interface Customer {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  avatar: string | null;
+  created_at: string;
+}
 
 const Customers = () => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [viewOpen, setViewOpen] = useState(false);
+  const [selected, setSelected] = useState<Customer | null>(null);
+  const { toast } = useToast();
+
+  const fetchCustomers = async () => {
+    const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    setCustomers(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchCustomers(); }, []);
+
   const filtered = customers.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const openView = (c: Customer) => { setSelected(c); setViewOpen(true); };
+
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -35,8 +59,7 @@ const Customers = () => {
             <tr className="border-b">
               <th className="table-header text-left p-4">Customer</th>
               <th className="table-header text-left p-4">Email</th>
-              <th className="table-header text-left p-4">Orders</th>
-              <th className="table-header text-left p-4">Total Spent</th>
+              <th className="table-header text-left p-4">Phone</th>
               <th className="table-header text-left p-4">Registered</th>
               <th className="table-header text-left p-4">Action</th>
             </tr>
@@ -46,22 +69,47 @@ const Customers = () => {
               <tr key={c.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                 <td className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">{c.avatar}</div>
-                    <span className="text-sm font-medium text-foreground">{c.name}</span>
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                      {c.name ? c.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"}
+                    </div>
+                    <span className="text-sm font-medium text-foreground">{c.name || "—"}</span>
                   </div>
                 </td>
                 <td className="p-4 text-sm text-muted-foreground">{c.email}</td>
-                <td className="p-4 text-sm text-foreground">{c.orders}</td>
-                <td className="p-4 text-sm font-medium text-foreground">{c.spent}</td>
-                <td className="p-4 text-sm text-muted-foreground">{c.date}</td>
+                <td className="p-4 text-sm text-muted-foreground">{c.phone || "—"}</td>
+                <td className="p-4 text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</td>
                 <td className="p-4">
-                  <Button variant="ghost" size="sm" className="text-muted-foreground"><Eye className="h-4 w-4 mr-1" />View</Button>
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => openView(c)}><Eye className="h-4 w-4 mr-1" />View</Button>
                 </td>
               </tr>
             ))}
+            {filtered.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No customers found</td></tr>}
           </tbody>
         </table>
       </div>
+
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Customer Details</DialogTitle></DialogHeader>
+          {selected && (
+            <div className="space-y-3 pt-4">
+              <div className="flex items-center gap-3">
+                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-lg font-semibold text-primary">
+                  {selected.name ? selected.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"}
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">{selected.name || "—"}</p>
+                  <p className="text-sm text-muted-foreground">{selected.email}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><span className="text-sm text-muted-foreground">Phone</span><p>{selected.phone || "—"}</p></div>
+                <div><span className="text-sm text-muted-foreground">Registered</span><p>{new Date(selected.created_at).toLocaleDateString()}</p></div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
