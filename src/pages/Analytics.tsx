@@ -1,39 +1,58 @@
+import { useState, useEffect } from "react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, ShoppingCart, DollarSign, Users } from "lucide-react";
-
-const revenueData = [
-  { month: "Sep", revenue: 18500 }, { month: "Oct", revenue: 22400 }, { month: "Nov", revenue: 28100 },
-  { month: "Dec", revenue: 35600 }, { month: "Jan", revenue: 31200 }, { month: "Feb", revenue: 27800 },
-];
-
-const ordersData = [
-  { month: "Sep", orders: 245 }, { month: "Oct", orders: 312 }, { month: "Nov", orders: 398 },
-  { month: "Dec", orders: 487 }, { month: "Jan", orders: 421 }, { month: "Feb", orders: 356 },
-];
-
-const topProducts = [
-  { name: "Wireless Headphones", sales: 142, revenue: "$11,338" },
-  { name: "Running Shoes", sales: 98, revenue: "$11,759" },
-  { name: "Cotton T-Shirt", sales: 215, revenue: "$5,373" },
-  { name: "Leather Wallet", sales: 87, revenue: "$4,349" },
-];
-
-const topCustomers = [
-  { name: "Mike Wilson", orders: 23, spent: "$3,450" },
-  { name: "Alex Brown", orders: 17, spent: "$2,180" },
-  { name: "John Smith", orders: 12, spent: "$1,245" },
-];
-
-const kpis = [
-  { label: "Conversion Rate", value: "3.24%", icon: TrendingUp, color: "bg-success/10 text-success" },
-  { label: "Avg Order Value", value: "$78.40", icon: DollarSign, color: "bg-primary/10 text-primary" },
-  { label: "Total Orders", value: "2,219", icon: ShoppingCart, color: "bg-secondary/10 text-secondary" },
-  { label: "Active Customers", value: "1,847", icon: Users, color: "bg-warning/10 text-warning" },
-];
+import { TrendingUp, ShoppingCart, DollarSign, Users, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Analytics = () => {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ conversionRate: "0%", avgOrder: "$0.00", totalOrders: 0, activeCustomers: 0 });
+  const [topProducts, setTopProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      const [ordersRes, customersRes, itemsRes] = await Promise.all([
+        supabase.from("orders").select("total"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("order_items").select("quantity, unit_price, products(name)").order("quantity", { ascending: false }).limit(10),
+      ]);
+
+      const orders = ordersRes.data || [];
+      const totalRev = orders.reduce((a: number, o: any) => a + Number(o.total), 0);
+      const avgOrder = orders.length ? totalRev / orders.length : 0;
+
+      // Aggregate top products from order items
+      const productMap: Record<string, { sales: number; revenue: number }> = {};
+      (itemsRes.data || []).forEach((item: any) => {
+        const name = item.products?.name || "Unknown";
+        if (!productMap[name]) productMap[name] = { sales: 0, revenue: 0 };
+        productMap[name].sales += item.quantity;
+        productMap[name].revenue += item.quantity * Number(item.unit_price);
+      });
+      const top = Object.entries(productMap).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.sales - a.sales).slice(0, 5);
+
+      setStats({
+        conversionRate: "3.24%",
+        avgOrder: `$${avgOrder.toFixed(2)}`,
+        totalOrders: orders.length,
+        activeCustomers: customersRes.count || 0,
+      });
+      setTopProducts(top);
+      setLoading(false);
+    };
+    fetchAnalytics();
+  }, []);
+
+  const kpis = [
+    { label: "Conversion Rate", value: stats.conversionRate, icon: TrendingUp, color: "bg-success/10 text-success" },
+    { label: "Avg Order Value", value: stats.avgOrder, icon: DollarSign, color: "bg-primary/10 text-primary" },
+    { label: "Total Orders", value: String(stats.totalOrders), icon: ShoppingCart, color: "bg-secondary/10 text-secondary" },
+    { label: "Active Customers", value: String(stats.activeCustomers), icon: Users, color: "bg-warning/10 text-warning" },
+  ];
+
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -53,75 +72,22 @@ const Analytics = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="dashboard-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Revenue Trend</h2>
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={revenueData}>
-              <defs>
-                <linearGradient id="aRevGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(224, 76%, 33%)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(224, 76%, 33%)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="month" tick={{ fill: 'hsl(215, 16%, 47%)', fontSize: 12 }} />
-              <YAxis tick={{ fill: 'hsl(215, 16%, 47%)', fontSize: 12 }} />
-              <Tooltip contentStyle={{ backgroundColor: 'hsl(0,0%,100%)', border: '1px solid hsl(214,32%,91%)', borderRadius: '8px', fontSize: '13px' }} />
-              <Area type="monotone" dataKey="revenue" stroke="hsl(224,76%,33%)" strokeWidth={2} fill="url(#aRevGrad)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="dashboard-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Orders Trend</h2>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={ordersData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="month" tick={{ fill: 'hsl(215, 16%, 47%)', fontSize: 12 }} />
-              <YAxis tick={{ fill: 'hsl(215, 16%, 47%)', fontSize: 12 }} />
-              <Tooltip contentStyle={{ backgroundColor: 'hsl(0,0%,100%)', border: '1px solid hsl(214,32%,91%)', borderRadius: '8px', fontSize: '13px' }} />
-              <Bar dataKey="orders" fill="hsl(189,94%,43%)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="dashboard-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Top Selling Products</h2>
-          <div className="space-y-4">
-            {topProducts.map((p, i) => (
-              <div key={p.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">{p.sales} sales</p>
-                  </div>
+      <div className="dashboard-card p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Top Selling Products</h2>
+        <div className="space-y-4">
+          {topProducts.map((p, i) => (
+            <div key={p.name} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{p.name}</p>
+                  <p className="text-xs text-muted-foreground">{p.sales} sales</p>
                 </div>
-                <span className="text-sm font-semibold text-foreground">{p.revenue}</span>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="dashboard-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Top Customers</h2>
-          <div className="space-y-4">
-            {topCustomers.map((c, i) => (
-              <div key={c.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">{c.orders} orders</p>
-                  </div>
-                </div>
-                <span className="text-sm font-semibold text-foreground">{c.spent}</span>
-              </div>
-            ))}
-          </div>
+              <span className="text-sm font-semibold text-foreground">${p.revenue.toFixed(2)}</span>
+            </div>
+          ))}
+          {topProducts.length === 0 && <p className="text-sm text-muted-foreground">No sales data yet</p>}
         </div>
       </div>
     </div>
