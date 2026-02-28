@@ -7,20 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface Order {
-  id: string;
-  status: string;
-  payment_method: string;
-  subtotal: number;
-  discount_amount: number;
-  shipping_cost: number;
-  total: number;
-  notes: string | null;
-  created_at: string;
-  profiles?: { name: string; email: string } | null;
-  order_items?: { id: string; quantity: number; unit_price: number; total_price: number; products?: { name: string } | null; product_sizes?: { size_label: string } | null }[];
-}
-
 const statuses = ["All", "pending", "paid", "shipped", "delivered", "cancelled"];
 const statusColors: Record<string, string> = {
   delivered: "bg-success/10 text-success",
@@ -31,34 +17,43 @@ const statusColors: Record<string, string> = {
 };
 
 const Orders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [viewOpen, setViewOpen] = useState(false);
-  const [selected, setSelected] = useState<Order | null>(null);
+  const [selected, setSelected] = useState<any>(null);
   const [updating, setUpdating] = useState(false);
   const { toast } = useToast();
 
   const fetchOrders = async () => {
     const { data, error } = await supabase
       .from("orders")
-      .select("*, profiles:customer_id(name, email), order_items(*, products(name), product_sizes(size_label))")
+      .select("*, order_items(*, products(name), product_sizes(size_label))")
       .order("created_at", { ascending: false });
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    setOrders((data as any) || []);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); setLoading(false); return; }
+
+    // Fetch customer profiles separately
+    const customerIds = [...new Set((data || []).map((o: any) => o.customer_id).filter(Boolean))];
+    let profilesMap: Record<string, any> = {};
+    if (customerIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, name, email").in("user_id", customerIds);
+      (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p; });
+    }
+
+    setOrders((data || []).map((o: any) => ({ ...o, profile: profilesMap[o.customer_id] || null })));
     setLoading(false);
   };
 
   useEffect(() => { fetchOrders(); }, []);
 
   const filtered = orders.filter((o) => {
-    const matchSearch = o.id.toLowerCase().includes(search.toLowerCase()) || (o.profiles as any)?.name?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = o.id.toLowerCase().includes(search.toLowerCase()) || o.profile?.name?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "All" || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const openView = (o: Order) => { setSelected(o); setViewOpen(true); };
+  const openView = (o: any) => { setSelected(o); setViewOpen(true); };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     setUpdating(true);
@@ -107,7 +102,7 @@ const Orders = () => {
             {filtered.map((order) => (
               <tr key={order.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                 <td className="p-4 text-sm font-medium text-primary font-mono">{order.id.slice(0, 8)}...</td>
-                <td className="p-4 text-sm text-foreground">{(order.profiles as any)?.name || "—"}</td>
+                <td className="p-4 text-sm text-foreground">{order.profile?.name || "—"}</td>
                 <td className="p-4 text-sm font-medium text-foreground">${Number(order.total).toFixed(2)}</td>
                 <td className="p-4 text-sm text-muted-foreground">{order.payment_method.replace("_", " ")}</td>
                 <td className="p-4"><span className={`status-badge ${statusColors[order.status] || ""}`}>{order.status}</span></td>
@@ -122,7 +117,6 @@ const Orders = () => {
         </table>
       </div>
 
-      {/* View Dialog */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Order Details</DialogTitle></DialogHeader>
@@ -130,7 +124,7 @@ const Orders = () => {
             <div className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div><span className="text-sm text-muted-foreground">Order ID</span><p className="font-mono text-sm">{selected.id}</p></div>
-                <div><span className="text-sm text-muted-foreground">Customer</span><p>{(selected.profiles as any)?.name || "—"}</p></div>
+                <div><span className="text-sm text-muted-foreground">Customer</span><p>{selected.profile?.name || "—"}</p></div>
                 <div><span className="text-sm text-muted-foreground">Payment</span><p>{selected.payment_method.replace("_", " ")}</p></div>
                 <div><span className="text-sm text-muted-foreground">Date</span><p>{new Date(selected.created_at).toLocaleString()}</p></div>
               </div>
@@ -150,7 +144,7 @@ const Orders = () => {
                 <table className="w-full">
                   <thead><tr className="bg-muted/50"><th className="text-left p-3 text-xs font-semibold">Item</th><th className="text-left p-3 text-xs font-semibold">Size</th><th className="text-left p-3 text-xs font-semibold">Qty</th><th className="text-left p-3 text-xs font-semibold">Price</th></tr></thead>
                   <tbody>
-                    {selected.order_items?.map(item => (
+                    {selected.order_items?.map((item: any) => (
                       <tr key={item.id} className="border-t">
                         <td className="p-3 text-sm">{item.products?.name || "—"}</td>
                         <td className="p-3 text-sm">{item.product_sizes?.size_label || "—"}</td>
@@ -164,8 +158,8 @@ const Orders = () => {
 
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>${Number(selected.subtotal).toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span>-${Number(selected.discount_amount).toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>${Number(selected.shipping_cost).toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span>-${Number(selected.discount_amount || 0).toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>${Number(selected.shipping_cost || 0).toFixed(2)}</span></div>
                 <div className="flex justify-between font-semibold border-t pt-1"><span>Total</span><span>${Number(selected.total).toFixed(2)}</span></div>
               </div>
 
