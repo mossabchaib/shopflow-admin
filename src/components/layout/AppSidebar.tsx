@@ -67,7 +67,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
-                        end={item.url === "/"}
+                        end={item.url === "/admin"}
                         className={`sidebar-item ${isActive ? "sidebar-item-active" : "sidebar-item-inactive"}`}
                         activeClassName=""
                       >
