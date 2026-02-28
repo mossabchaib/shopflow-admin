@@ -6,16 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface Review {
-  id: string;
-  rating: number;
-  comment: string | null;
-  status: string;
-  created_at: string;
-  products?: { name: string } | null;
-  profiles?: { name: string; email: string } | null;
-}
-
 const statusColors: Record<string, string> = {
   approved: "bg-success/10 text-success",
   pending: "bg-warning/10 text-warning",
@@ -23,20 +13,29 @@ const statusColors: Record<string, string> = {
 };
 
 const Reviews = () => {
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
   const [viewOpen, setViewOpen] = useState(false);
-  const [selected, setSelected] = useState<Review | null>(null);
+  const [selected, setSelected] = useState<any>(null);
   const { toast } = useToast();
 
   const fetchReviews = async () => {
     const { data, error } = await supabase
       .from("reviews")
-      .select("*, products(name), profiles:customer_id(name, email)")
+      .select("*, products(name)")
       .order("created_at", { ascending: false });
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    setReviews((data as any) || []);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); setLoading(false); return; }
+
+    // Fetch customer profiles separately
+    const customerIds = [...new Set((data || []).map((r: any) => r.customer_id).filter(Boolean))];
+    let profilesMap: Record<string, any> = {};
+    if (customerIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, name, email").in("user_id", customerIds);
+      (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p; });
+    }
+
+    setReviews((data || []).map((r: any) => ({ ...r, profile: profilesMap[r.customer_id] || null })));
     setLoading(false);
   };
 
@@ -51,7 +50,7 @@ const Reviews = () => {
     fetchReviews();
   };
 
-  const openView = (r: Review) => { setSelected(r); setViewOpen(true); };
+  const openView = (r: any) => { setSelected(r); setViewOpen(true); };
 
   const StarRating = ({ rating }: { rating: number }) => (
     <div className="flex items-center gap-0.5">
@@ -96,7 +95,7 @@ const Reviews = () => {
           <tbody>
             {filtered.map((r) => (
               <tr key={r.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                <td className="p-4 text-sm font-medium text-foreground">{(r.profiles as any)?.name || "—"}</td>
+                <td className="p-4 text-sm font-medium text-foreground">{r.profile?.name || "—"}</td>
                 <td className="p-4 text-sm text-muted-foreground">{r.products?.name || "—"}</td>
                 <td className="p-4"><StarRating rating={r.rating} /></td>
                 <td className="p-4 text-sm text-foreground max-w-[250px] truncate">{r.comment || "—"}</td>
@@ -125,7 +124,7 @@ const Reviews = () => {
           {selected && (
             <div className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
-                <div><span className="text-sm text-muted-foreground">Customer</span><p className="font-medium">{(selected.profiles as any)?.name || "—"}</p></div>
+                <div><span className="text-sm text-muted-foreground">Customer</span><p className="font-medium">{selected.profile?.name || "—"}</p></div>
                 <div><span className="text-sm text-muted-foreground">Product</span><p>{selected.products?.name || "—"}</p></div>
               </div>
               <div><span className="text-sm text-muted-foreground">Rating</span><div className="mt-1"><StarRating rating={selected.rating} /></div></div>

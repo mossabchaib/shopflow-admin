@@ -1,15 +1,10 @@
 import { useState, useEffect } from "react";
 import {
-  DollarSign, ShoppingCart, Users, Package, TrendingUp, TrendingDown, AlertTriangle, Loader2,
+  DollarSign, ShoppingCart, Users, Package, AlertTriangle, Loader2,
 } from "lucide-react";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
-  const [range, setRange] = useState<"7" | "30">("7");
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ revenue: 0, orders: 0, customers: 0, products: 0 });
   const [latestOrders, setLatestOrders] = useState<any[]>([]);
@@ -21,9 +16,19 @@ const Dashboard = () => {
         supabase.from("orders").select("total, status"),
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("products").select("id", { count: "exact", head: true }),
-        supabase.from("orders").select("id, total, status, created_at, profiles:customer_id(name)").order("created_at", { ascending: false }).limit(5),
+        supabase.from("orders").select("id, total, status, created_at, customer_id").order("created_at", { ascending: false }).limit(5),
         supabase.from("product_sizes").select("size_label, stock, products(name)").lt("stock", 10).order("stock").limit(5),
       ]);
+
+      // Fetch customer names for latest orders
+      const customerIds = [...new Set((latestRes.data || []).map((o: any) => o.customer_id).filter(Boolean))];
+      let profilesMap: Record<string, string> = {};
+      if (customerIds.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("user_id, name").in("user_id", customerIds);
+        (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p.name; });
+      }
+
+      const orders = (latestRes.data || []).map((o: any) => ({ ...o, customerName: profilesMap[o.customer_id] || "—" }));
 
       const revenue = (ordersRes.data || []).reduce((a: number, o: any) => a + Number(o.total), 0);
       setStats({
@@ -32,7 +37,7 @@ const Dashboard = () => {
         customers: customersRes.count || 0,
         products: productsRes.count || 0,
       });
-      setLatestOrders((latestRes.data as any) || []);
+      setLatestOrders(orders);
       setLowStock((lowStockRes.data as any) || []);
       setLoading(false);
     };
@@ -97,7 +102,7 @@ const Dashboard = () => {
                 {latestOrders.map((order) => (
                   <tr key={order.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                     <td className="p-4 text-sm font-medium text-primary font-mono">{order.id.slice(0, 8)}...</td>
-                    <td className="p-4 text-sm text-foreground">{(order.profiles as any)?.name || "—"}</td>
+                    <td className="p-4 text-sm text-foreground">{order.customerName}</td>
                     <td className="p-4 text-sm font-medium text-foreground">${Number(order.total).toFixed(2)}</td>
                     <td className="p-4"><span className={`status-badge ${statusColors[order.status] || ""}`}>{order.status}</span></td>
                     <td className="p-4 text-sm text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</td>
