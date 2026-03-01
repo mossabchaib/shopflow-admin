@@ -3,12 +3,16 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ProductCard } from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
+import heroBg from "@/assets/hero-bg.jpg";
 
 const Home = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [productsByCategory, setProductsByCategory] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,93 +38,113 @@ const Home = () => {
     fetchData();
   }, []);
 
-  const getImage = (p: any) => {
-    const primary = p.product_images?.find((i: any) => i.is_primary);
-    return primary?.image_url || p.product_images?.[0]?.image_url || "/placeholder.svg";
-  };
-
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div>
       {/* Hero */}
-      <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center bg-gradient-to-br from-primary to-secondary overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/placeholder.svg')] bg-cover bg-center opacity-10" />
+      <section className="relative h-[75vh] min-h-[520px] flex items-center justify-center overflow-hidden">
+        <img
+          src={heroBg}
+          alt="Hero"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-foreground/50" />
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative text-center px-4"
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative text-center px-4 max-w-3xl"
         >
-          <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground mb-4">Discover Your Style</h1>
-          <p className="text-lg md:text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">Shop the latest trends with premium quality products, curated just for you.</p>
-          <Button size="lg" variant="secondary" asChild>
-            <Link to="/shop">Shop Now <ArrowRight className="ml-2 h-5 w-5" /></Link>
+          <h1 className="text-4xl md:text-6xl font-bold text-card mb-4 leading-tight">
+            {t("hero.title")}
+          </h1>
+          <p className="text-base md:text-lg text-card/80 mb-8 max-w-xl mx-auto leading-relaxed">
+            {t("hero.subtitle")}
+          </p>
+          <Button size="lg" asChild className="px-8 h-12 text-base font-semibold">
+            <Link to="/shop">{t("hero.cta")} <ArrowRight className="ms-2 h-5 w-5" /></Link>
           </Button>
         </motion.div>
       </section>
 
-      {/* Categories with products */}
+      {/* Categories Grid */}
       <section className="max-w-7xl mx-auto px-4 py-16">
-        <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-3xl font-bold text-foreground mb-10 text-center">
-          Our Categories
+        <motion.h2
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-2xl md:text-3xl font-bold text-foreground mb-10 text-center"
+        >
+          {t("home.categories")}
         </motion.h2>
 
-        {categories.length === 0 && <p className="text-center text-muted-foreground">No categories yet.</p>}
-
-        <div className="space-y-16">
-          {categories.map((cat, ci) => {
-            const prods = productsByCategory[cat.id] || [];
-            return (
-              <motion.div
-                key={cat.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: ci * 0.1 }}
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-semibold text-foreground">{cat.name}</h3>
-                  <Link to={`/shop?category=${cat.id}`} className="text-sm text-primary hover:underline flex items-center gap-1">
-                    View All <ArrowRight className="h-4 w-4" />
+        {categories.length === 0 ? (
+          <p className="text-center text-muted-foreground">{t("home.noCategories")}</p>
+        ) : (
+          <>
+            {/* Category cards grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-16">
+              {categories.map((cat, i) => (
+                <motion.div
+                  key={cat.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.06 }}
+                >
+                  <Link
+                    to={`/shop?category=${cat.id}`}
+                    className="group block rounded-xl overflow-hidden border bg-card hover:shadow-md transition-shadow duration-300"
+                  >
+                    <div className="aspect-[4/3] overflow-hidden bg-muted">
+                      <img
+                        src={cat.image_url || "/placeholder.svg"}
+                        alt={cat.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-sm font-semibold text-foreground text-center">{cat.name}</h3>
+                    </div>
                   </Link>
-                </div>
-                {prods.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No products in this category yet.</p>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {prods.map((p: any, pi: number) => (
-                      <motion.div
-                        key={p.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: pi * 0.05 }}
-                      >
-                        <Link to={`/product/${p.id}`} className="group block">
-                          <div className="aspect-square rounded-xl overflow-hidden bg-muted mb-3">
-                            <img src={getImage(p)} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                          </div>
-                          <h4 className="text-sm font-medium text-foreground truncate">{p.name}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            {p.discount_price ? (
-                              <>
-                                <span className="text-sm font-semibold text-primary">${Number(p.discount_price).toFixed(2)}</span>
-                                <span className="text-xs text-muted-foreground line-through">${Number(p.price).toFixed(2)}</span>
-                              </>
-                            ) : (
-                              <span className="text-sm font-semibold text-foreground">${Number(p.price).toFixed(2)}</span>
-                            )}
-                          </div>
-                        </Link>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Products by category */}
+            <div className="space-y-14">
+              {categories.map((cat, ci) => {
+                const prods = productsByCategory[cat.id] || [];
+                return (
+                  <motion.div
+                    key={cat.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: ci * 0.08 }}
+                  >
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-semibold text-foreground">{cat.name}</h3>
+                      <Link to={`/shop?category=${cat.id}`} className="text-sm text-primary hover:underline flex items-center gap-1 font-medium">
+                        {t("home.viewAll")} <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
+                    {prods.length === 0 ? (
+                      <p className="text-muted-foreground text-sm">{t("home.noProducts")}</p>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {prods.map((p, pi) => (
+                          <ProductCard key={p.id} product={p} index={pi} />
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </section>
     </div>
   );

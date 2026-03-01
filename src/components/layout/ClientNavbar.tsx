@@ -1,18 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingCart, Heart, User, Menu, X, Store, LogOut, LayoutDashboard } from "lucide-react";
+import { ShoppingCart, Heart, Menu, X, Store, LogOut, LayoutDashboard, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useI18n, Lang } from "@/lib/i18n";
+import { useGuestCart } from "@/hooks/useGuestCart";
+
+const languages: { code: Lang; label: string }[] = [
+  { code: "en", label: "English" },
+  { code: "fr", label: "Français" },
+  { code: "ar", label: "العربية" },
+];
 
 export function ClientNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t, lang, setLang } = useI18n();
+  const { count: guestCartCount } = useGuestCart();
 
-  const { data: cartCount } = useQuery({
+  const { data: dbCartCount } = useQuery({
     queryKey: ["cart-count", user?.id],
     queryFn: async () => {
       if (!user) return 0;
@@ -21,6 +32,8 @@ export function ClientNavbar() {
     },
     enabled: !!user,
   });
+
+  const cartCount = user ? (dbCartCount || 0) : guestCartCount;
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -33,8 +46,8 @@ export function ClientNavbar() {
   });
 
   const links = [
-    { href: "/", label: "Home" },
-    { href: "/shop", label: "Shop" },
+    { href: "/", label: t("nav.home") },
+    { href: "/shop", label: t("nav.shop") },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -58,32 +71,57 @@ export function ClientNavbar() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            {/* Language Switcher */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Globe className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {languages.map(l => (
+                  <DropdownMenuItem
+                    key={l.code}
+                    onClick={() => setLang(l.code)}
+                    className={lang === l.code ? "bg-primary/10 text-primary" : ""}
+                  >
+                    {l.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {user && (
-              <>
-                <Button variant="ghost" size="icon" className="relative" onClick={() => navigate("/favorites")}>
-                  <Heart className={`h-5 w-5 ${isActive("/favorites") ? "fill-primary text-primary" : ""}`} />
-                </Button>
-                <Button variant="ghost" size="icon" className="relative" onClick={() => navigate("/cart")}>
-                  <ShoppingCart className="h-5 w-5" />
-                  {(cartCount || 0) > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">{cartCount}</span>
-                  )}
-                </Button>
-                {isAdmin && (
-                  <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} title="Admin Dashboard">
-                    <LayoutDashboard className="h-5 w-5" />
-                  </Button>
-                )}
-                <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}>
-                  <LogOut className="h-5 w-5" />
-                </Button>
-              </>
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/favorites")}>
+                <Heart className={`h-4 w-4 ${isActive("/favorites") ? "fill-primary text-primary" : ""}`} />
+              </Button>
             )}
-            {!user && (
-              <Button size="sm" onClick={() => navigate("/auth")}>Sign In</Button>
+
+            <Button variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate("/cart")}>
+              <ShoppingCart className="h-4 w-4" />
+              {cartCount > 0 && (
+                <span className="absolute -top-0.5 -end-0.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-medium">
+                  {cartCount}
+                </span>
+              )}
+            </Button>
+
+            {user && isAdmin && (
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/admin")} title={t("nav.dashboard")}>
+                <LayoutDashboard className="h-4 w-4" />
+              </Button>
             )}
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
+
+            {user ? (
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => navigate("/auth")}>{t("nav.signin")}</Button>
+            )}
+
+            <Button variant="ghost" size="icon" className="md:hidden h-9 w-9" onClick={() => setMobileOpen(!mobileOpen)}>
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
