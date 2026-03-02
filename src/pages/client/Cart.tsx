@@ -48,7 +48,7 @@ const Cart = () => {
       if (!user) { setLoading(false); return; }
       const { data } = await supabase
         .from("cart_items")
-        .select("*, products(id, name, price, discount_price, product_images(image_url, is_primary)), product_sizes(size_label, extra_price)")
+        .select("*, products(id, name, price, discount_price, product_images(image_url, is_primary)), product_sizes(size_label, extra_price), product_colors(color_name, color_hex)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       setDbItems(data || []);
