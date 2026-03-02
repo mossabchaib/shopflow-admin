@@ -18,6 +18,13 @@ interface ProductSize {
   extra_price: number;
 }
 
+interface ProductColor {
+  id?: string;
+  color_name: string;
+  color_hex: string;
+  stock: number;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -31,6 +38,7 @@ interface Product {
   categories?: { name: string } | null;
   product_images?: { id: string; image_url: string; is_primary: boolean }[];
   product_sizes?: { id: string; size_label: string; stock: number; extra_price: number }[];
+  product_colors?: { id: string; color_name: string; color_hex: string; stock: number }[];
 }
 
 interface Category {
@@ -56,11 +64,12 @@ const Products = () => {
     name: "", description: "", price: "", discount_price: "", category_id: "", status: "active" as string,
   });
   const [sizes, setSizes] = useState<ProductSize[]>([{ size_label: "M", stock: 0, extra_price: 0 }]);
+  const [colors, setColors] = useState<ProductColor[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const fetchData = async () => {
     const [prodRes, catRes] = await Promise.all([
-      supabase.from("products").select("*, categories(name), product_images(*), product_sizes(*)").order("created_at", { ascending: false }),
+      supabase.from("products").select("*, categories(name), product_images(*), product_sizes(*), product_colors(*)").order("created_at", { ascending: false }),
       supabase.from("categories").select("id, name").order("name"),
     ]);
     if (prodRes.data) setProducts(prodRes.data as any);
@@ -80,6 +89,7 @@ const Products = () => {
     setEditing(null);
     setForm({ name: "", description: "", price: "", discount_price: "", category_id: "", status: "active" });
     setSizes([{ size_label: "M", stock: 0, extra_price: 0 }]);
+    setColors([]);
     setImageUrls([]);
     setDialogOpen(true);
   };
@@ -88,6 +98,7 @@ const Products = () => {
     setEditing(p);
     setForm({ name: p.name, description: p.description || "", price: String(p.price), discount_price: p.discount_price ? String(p.discount_price) : "", category_id: p.category_id || "", status: p.status });
     setSizes(p.product_sizes?.map(s => ({ id: s.id, size_label: s.size_label, stock: s.stock, extra_price: Number(s.extra_price) })) || []);
+    setColors(p.product_colors?.map(c => ({ id: c.id, color_name: c.color_name, color_hex: c.color_hex, stock: c.stock })) || []);
     setImageUrls(p.product_images?.map(i => i.image_url) || []);
     setDialogOpen(true);
   };
@@ -115,10 +126,16 @@ const Products = () => {
   const removeSize = (idx: number) => setSizes(prev => prev.filter((_, i) => i !== idx));
   const updateSize = (idx: number, field: string, value: any) => setSizes(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
 
+  const addColor = () => setColors(prev => [...prev, { color_name: "", color_hex: "#000000", stock: 0 }]);
+  const removeColor = (idx: number) => setColors(prev => prev.filter((_, i) => i !== idx));
+  const updateColor = (idx: number, field: string, value: any) => setColors(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
+
   const handleSave = async () => {
     if (!form.name || !form.price) { toast({ title: "Error", description: "Name and price are required", variant: "destructive" }); return; }
     setSaving(true);
-    const totalStock = sizes.reduce((a, s) => a + Number(s.stock), 0);
+    const sizeStock = sizes.reduce((a, s) => a + Number(s.stock), 0);
+    const colorStock = colors.reduce((a, c) => a + Number(c.stock), 0);
+    const totalStock = Math.max(sizeStock, colorStock) || sizeStock + colorStock;
     const productData = {
       name: form.name,
       description: form.description || null,
@@ -140,8 +157,8 @@ const Products = () => {
       productId = data.id;
     }
 
-    // Update images
     if (productId) {
+      // Update images
       await supabase.from("product_images").delete().eq("product_id", productId);
       if (imageUrls.length > 0) {
         await supabase.from("product_images").insert(imageUrls.map((url, i) => ({ product_id: productId!, image_url: url, is_primary: i === 0, sort_order: i })));
@@ -150,6 +167,11 @@ const Products = () => {
       await supabase.from("product_sizes").delete().eq("product_id", productId);
       if (sizes.length > 0) {
         await supabase.from("product_sizes").insert(sizes.filter(s => s.size_label).map(s => ({ product_id: productId!, size_label: s.size_label, stock: Number(s.stock), extra_price: Number(s.extra_price) })));
+      }
+      // Update colors
+      await supabase.from("product_colors").delete().eq("product_id", productId);
+      if (colors.length > 0) {
+        await supabase.from("product_colors").insert(colors.filter(c => c.color_name).map(c => ({ product_id: productId!, color_name: c.color_name, color_hex: c.color_hex, stock: Number(c.stock) })));
       }
     }
 
@@ -300,6 +322,25 @@ const Products = () => {
               </div>
             </div>
 
+            {/* Colors */}
+            <div>
+              <div className="flex items-center justify-between">
+                <Label>Colors & Stock</Label>
+                <Button variant="outline" size="sm" onClick={addColor}><Plus className="h-3 w-3 mr-1" />Add Color</Button>
+              </div>
+              <div className="space-y-2 mt-2">
+                {colors.map((c, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <Input placeholder="Color name" value={c.color_name} onChange={e => updateColor(i, "color_name", e.target.value)} className="flex-1" />
+                    <input type="color" value={c.color_hex} onChange={e => updateColor(i, "color_hex", e.target.value)} className="h-9 w-12 rounded border border-border cursor-pointer" />
+                    <Input type="number" placeholder="Stock" value={c.stock} onChange={e => updateColor(i, "stock", parseInt(e.target.value) || 0)} className="w-24" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeColor(i)}><X className="h-4 w-4" /></Button>
+                  </div>
+                ))}
+                {colors.length === 0 && <p className="text-xs text-muted-foreground">No colors added. Click "Add Color" to add color variants.</p>}
+              </div>
+            </div>
+
             <Button className="w-full" onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{editing ? "Update Product" : "Create Product"}</Button>
           </div>
         </DialogContent>
@@ -330,6 +371,20 @@ const Products = () => {
                     <div key={s.id} className="flex justify-between text-sm bg-muted/50 px-3 py-1.5 rounded">
                       <span className="font-medium">{s.size_label}</span>
                       <span>Stock: {s.stock} {Number(s.extra_price) > 0 && `(+$${Number(s.extra_price).toFixed(2)})`}</span>
+                    </div>
+                  ))}</div>
+                </div>
+              )}
+              {selected.product_colors && selected.product_colors.length > 0 && (
+                <div>
+                  <span className="text-sm text-muted-foreground">Colors</span>
+                  <div className="mt-1 space-y-1">{selected.product_colors.map(c => (
+                    <div key={c.id} className="flex items-center justify-between text-sm bg-muted/50 px-3 py-1.5 rounded">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full border" style={{ backgroundColor: c.color_hex }} />
+                        <span className="font-medium">{c.color_name}</span>
+                      </div>
+                      <span>Stock: {c.stock}</span>
                     </div>
                   ))}</div>
                 </div>

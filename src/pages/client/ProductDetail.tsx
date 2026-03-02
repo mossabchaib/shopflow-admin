@@ -21,10 +21,12 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
   const [sizes, setSizes] = useState<any[]>([]);
+  const [colors, setColors] = useState<any[]>([]);
   const [related, setRelated] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isFav, setIsFav] = useState(false);
 
@@ -32,15 +34,17 @@ const ProductDetail = () => {
     if (!id) return;
     const fetchAll = async () => {
       setLoading(true);
-      const [prodRes, imgRes, sizeRes] = await Promise.all([
+      const [prodRes, imgRes, sizeRes, colorRes] = await Promise.all([
         supabase.from("products").select("*, categories(id, name)").eq("id", id).single(),
         supabase.from("product_images").select("*").eq("product_id", id).order("sort_order"),
         supabase.from("product_sizes").select("*").eq("product_id", id).order("size_label"),
+        supabase.from("product_colors").select("*").eq("product_id", id).order("color_name"),
       ]);
 
       setProduct(prodRes.data);
       setImages(imgRes.data || []);
       setSizes(sizeRes.data || []);
+      setColors(colorRes.data || []);
 
       // Related products
       if (prodRes.data?.category_id) {
@@ -81,12 +85,22 @@ const ProductDetail = () => {
       toast({ title: t("product.size"), description: "Please select a size", variant: "destructive" });
       return;
     }
+    if (colors.length > 0 && !selectedColor) {
+      toast({ title: t("product.color") || "Color", description: "Please select a color", variant: "destructive" });
+      return;
+    }
     if (user) {
-      const { error } = await supabase.from("cart_items").insert({ user_id: user.id, product_id: id!, size_id: selectedSize, quantity });
+      const { error } = await supabase.from("cart_items").insert({
+        user_id: user.id,
+        product_id: id!,
+        size_id: selectedSize,
+        color_id: selectedColor,
+        quantity,
+      });
       if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); return; }
       queryClient.invalidateQueries({ queryKey: ["cart-count"] });
     } else {
-      addItem(id!, selectedSize, quantity);
+      addItem(id!, selectedSize, quantity, selectedColor);
     }
     toast({ title: t("product.addToCart") + " ✓" });
   };
@@ -129,6 +143,43 @@ const ProductDetail = () => {
           </div>
 
           {product.description && <p className="text-muted-foreground leading-relaxed">{product.description}</p>}
+
+          {/* Colors */}
+          {colors.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">{t("product.color") || "Color"}</p>
+              <div className="flex flex-wrap gap-3">
+                {colors.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedColor(c.id)}
+                    disabled={c.stock <= 0}
+                    title={c.color_name}
+                    className={`relative w-10 h-10 rounded-full border-2 transition-all ${
+                      selectedColor === c.id ? "border-primary ring-2 ring-primary/30 scale-110" :
+                      c.stock <= 0 ? "border-border opacity-40 cursor-not-allowed" :
+                      "border-border hover:border-primary"
+                    }`}
+                  >
+                    <span
+                      className="block w-full h-full rounded-full"
+                      style={{ backgroundColor: c.color_hex }}
+                    />
+                    {c.stock <= 0 && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="w-8 h-0.5 bg-destructive rotate-45 rounded-full" />
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {selectedColor && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {colors.find(c => c.id === selectedColor)?.color_name}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Sizes */}
           {sizes.length > 0 && (
