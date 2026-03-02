@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, Heart, ShoppingCart, Loader2, Minus, Plus } from "lucide-react";
+import { Heart, ShoppingCart, Loader2, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,46 +21,26 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
   const [sizes, setSizes] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
   const [related, setRelated] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isFav, setIsFav] = useState(false);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [submittingReview, setSubmittingReview] = useState(false);
-  const [hasReviewed, setHasReviewed] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     const fetchAll = async () => {
       setLoading(true);
-      const [prodRes, imgRes, sizeRes, revRes] = await Promise.all([
+      const [prodRes, imgRes, sizeRes] = await Promise.all([
         supabase.from("products").select("*, categories(id, name)").eq("id", id).single(),
         supabase.from("product_images").select("*").eq("product_id", id).order("sort_order"),
         supabase.from("product_sizes").select("*").eq("product_id", id).order("size_label"),
-        supabase.from("reviews").select("*").eq("product_id", id).eq("status", "approved").order("created_at", { ascending: false }),
       ]);
 
       setProduct(prodRes.data);
       setImages(imgRes.data || []);
       setSizes(sizeRes.data || []);
-
-      // Reviewer names
-      const customerIds = [...new Set((revRes.data || []).map((r: any) => r.customer_id).filter(Boolean))];
-      let profilesMap: Record<string, string> = {};
-      if (customerIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, name").in("user_id", customerIds);
-        (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p.name; });
-      }
-      setReviews((revRes.data || []).map((r: any) => ({ ...r, customerName: profilesMap[r.customer_id] || "Anonymous" })));
-
-      // Check if user already reviewed
-      if (user) {
-        const { data: existingReview } = await supabase.from("reviews").select("id").eq("product_id", id).eq("customer_id", user.id).maybeSingle();
-        setHasReviewed(!!existingReview);
-      }
 
       // Related products
       if (prodRes.data?.category_id) {
@@ -111,28 +91,6 @@ const ProductDetail = () => {
     toast({ title: t("product.addToCart") + " ✓" });
   };
 
-  const submitReview = async () => {
-    if (!user) { toast({ title: t("product.signinToReview"), variant: "destructive" }); return; }
-    if (hasReviewed) { toast({ title: t("product.alreadyReviewed"), variant: "destructive" }); return; }
-    setSubmittingReview(true);
-    const { error } = await supabase.from("reviews").insert({
-      product_id: id!,
-      customer_id: user.id,
-      rating: reviewRating,
-      comment: null,
-    });
-    if (error) {
-      const msg = error.message.includes("unique") ? t("product.alreadyReviewed") : error.message;
-      toast({ title: t("common.error"), description: msg, variant: "destructive" });
-      setSubmittingReview(false);
-      return;
-    }
-    toast({ title: t("product.reviewSubmitted") });
-    setHasReviewed(true);
-    setSubmittingReview(false);
-  };
-
-  const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
   const price = product?.discount_price || product?.price || 0;
   const sizeExtra = sizes.find(s => s.id === selectedSize)?.extra_price || 0;
 
@@ -163,10 +121,6 @@ const ProductDetail = () => {
           <div>
             <p className="text-sm text-primary font-medium">{product.categories?.name}</p>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground mt-1">{product.name}</h1>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="flex">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < Math.round(avgRating) ? "fill-warning text-warning" : "text-border"}`} />)}</div>
-              <span className="text-sm text-muted-foreground">({reviews.length})</span>
-            </div>
           </div>
 
           <div className="flex items-baseline gap-3">
@@ -222,61 +176,7 @@ const ProductDetail = () => {
         </div>
       </motion.div>
 
-      {/* Reviews */}
-      <div className="mt-16">
-        <h2 className="text-xl font-bold text-foreground mb-6">{t("product.reviews")} ({reviews.length})</h2>
-
-        {/* Stars display */}
-        <div className="flex items-center gap-4 mb-8 p-5 rounded-xl border bg-card">
-          <div className="text-center">
-            <p className="text-4xl font-bold text-foreground">{avgRating.toFixed(1)}</p>
-            <div className="flex mt-1">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`h-4 w-4 ${i < Math.round(avgRating) ? "fill-warning text-warning" : "text-border"}`} />)}</div>
-            <p className="text-xs text-muted-foreground mt-1">{reviews.length} ratings</p>
-          </div>
-          <div className="flex-1 space-y-1.5 ms-4">
-            {[5, 4, 3, 2, 1].map(star => {
-              const count = reviews.filter(r => r.rating === star).length;
-              const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
-              return (
-                <div key={star} className="flex items-center gap-2 text-sm">
-                  <span className="w-3 text-muted-foreground">{star}</span>
-                  <Star className="h-3 w-3 fill-warning text-warning" />
-                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-warning rounded-full transition-all" style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="w-8 text-xs text-muted-foreground text-end">{count}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Submit rating (stars only) */}
-        {user && !hasReviewed && (
-          <div className="p-5 rounded-xl border bg-card mb-8">
-            <h3 className="font-semibold text-foreground mb-3">{t("product.leaveReview")}</h3>
-            <div className="flex items-center gap-1 mb-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <button key={i} onClick={() => setReviewRating(i + 1)}>
-                  <Star className={`h-7 w-7 cursor-pointer transition-colors ${i < reviewRating ? "fill-warning text-warning" : "text-border hover:text-warning/50"}`} />
-                </button>
-              ))}
-            </div>
-            <Button onClick={submitReview} disabled={submittingReview} size="sm">
-              {submittingReview ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
-              {t("product.submitReview")}
-            </Button>
-          </div>
-        )}
-        {user && hasReviewed && (
-          <p className="text-sm text-muted-foreground mb-8 p-4 rounded-xl border bg-card">{t("product.alreadyReviewed")}</p>
-        )}
-        {!user && (
-          <p className="text-sm text-muted-foreground mb-8 p-4 rounded-xl border bg-card">{t("product.signinToReview")}</p>
-        )}
-      </div>
-
-      {/* Related */}
+      {/* Related Products */}
       {related.length > 0 && (
         <div className="mt-16">
           <h2 className="text-xl font-bold text-foreground mb-6">{t("product.related")}</h2>
