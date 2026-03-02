@@ -58,6 +58,7 @@ export type Database = {
       }
       cart_items: {
         Row: {
+          color_id: string | null
           created_at: string | null
           id: string
           product_id: string
@@ -66,6 +67,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          color_id?: string | null
           created_at?: string | null
           id?: string
           product_id: string
@@ -74,6 +76,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          color_id?: string | null
           created_at?: string | null
           id?: string
           product_id?: string
@@ -82,6 +85,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cart_items_color_id_fkey"
+            columns: ["color_id"]
+            isOneToOne: false
+            referencedRelation: "product_colors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cart_items_product_id_fkey"
             columns: ["product_id"]
@@ -195,6 +205,7 @@ export type Database = {
       }
       order_items: {
         Row: {
+          color_id: string | null
           id: string
           order_id: string | null
           product_id: string | null
@@ -204,6 +215,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          color_id?: string | null
           id?: string
           order_id?: string | null
           product_id?: string | null
@@ -213,6 +225,7 @@ export type Database = {
           unit_price?: number
         }
         Update: {
+          color_id?: string | null
           id?: string
           order_id?: string | null
           product_id?: string | null
@@ -222,6 +235,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_color_id_fkey"
+            columns: ["color_id"]
+            isOneToOne: false
+            referencedRelation: "product_colors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
@@ -304,6 +324,41 @@ export type Database = {
             columns: ["coupon_id"]
             isOneToOne: false
             referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_colors: {
+        Row: {
+          color_hex: string
+          color_name: string
+          created_at: string | null
+          id: string
+          product_id: string | null
+          stock: number
+        }
+        Insert: {
+          color_hex?: string
+          color_name: string
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          stock?: number
+        }
+        Update: {
+          color_hex?: string
+          color_name?: string
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          stock?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_colors_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
