@@ -30,6 +30,7 @@ const translations: Record<Lang, Record<string, string>> = {
     // Product
     "product.addToCart": "Add to Cart",
     "product.size": "Size",
+    "product.color": "Color",
     "product.quantity": "Quantity",
     "product.outOfStock": "Out of stock",
     "product.reviews": "Reviews",
@@ -119,6 +120,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "shop.noProducts": "Aucun produit trouvé.",
     "product.addToCart": "Ajouter au Panier",
     "product.size": "Taille",
+    "product.color": "Couleur",
     "product.quantity": "Quantité",
     "product.outOfStock": "Rupture de stock",
     "product.reviews": "Avis",
@@ -202,6 +204,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "shop.noProducts": "لم يتم العثور على منتجات.",
     "product.addToCart": "أضف إلى السلة",
     "product.size": "المقاس",
+    "product.color": "اللون",
     "product.quantity": "الكمية",
     "product.outOfStock": "نفد المخزون",
     "product.reviews": "التقييمات",

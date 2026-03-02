@@ -35,7 +35,7 @@ const Checkout = () => {
     const fetch = async () => {
       const { data } = await supabase
         .from("cart_items")
-        .select("*, products(id, name, price, discount_price), product_sizes(id, size_label, extra_price, stock)")
+        .select("*, products(id, name, price, discount_price), product_sizes(id, size_label, extra_price, stock), product_colors(id, color_name, color_hex, stock)")
         .eq("user_id", user.id);
       setCartItems(data || []);
       setLoading(false);
@@ -98,6 +98,7 @@ const Checkout = () => {
         order_id: orderData.id,
         product_id: item.products?.id,
         size_id: item.product_sizes?.id || null,
+        color_id: (item as any).product_colors?.id || null,
         quantity: item.quantity,
         unit_price: Number(item.products?.discount_price || item.products?.price || 0) + Number(item.product_sizes?.extra_price || 0),
         total_price: getItemPrice(item),

@@ -32,6 +32,7 @@ const Cart = () => {
           user_id: user.id,
           product_id: item.product_id,
           size_id: item.size_id,
+          color_id: (item as any).color_id || null,
           quantity: item.quantity,
         });
       }
@@ -47,7 +48,7 @@ const Cart = () => {
       if (!user) { setLoading(false); return; }
       const { data } = await supabase
         .from("cart_items")
-        .select("*, products(id, name, price, discount_price, product_images(image_url, is_primary)), product_sizes(size_label, extra_price)")
+        .select("*, products(id, name, price, discount_price, product_images(image_url, is_primary)), product_sizes(size_label, extra_price), product_colors(color_name, color_hex)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       setDbItems(data || []);
@@ -158,6 +159,7 @@ const Cart = () => {
                   <div className="flex-1 min-w-0">
                     <Link to={`/product/${item.products?.id}`} className="font-medium text-foreground hover:text-primary truncate block">{item.products?.name}</Link>
                     {item.product_sizes && <p className="text-xs text-muted-foreground">{t("product.size")}: {item.product_sizes.size_label}</p>}
+                    {(item as any).product_colors && <p className="text-xs text-muted-foreground flex items-center gap-1">Color: <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: (item as any).product_colors.color_hex }} /> {(item as any).product_colors.color_name}</p>}
                     <p className="text-sm font-bold text-primary mt-1">${getDbItemPrice(item).toFixed(2)}</p>
                   </div>
                   <div className="flex items-center gap-2">
