@@ -30,6 +30,7 @@ const translations: Record<Lang, Record<string, string>> = {
     // Product
     "product.addToCart": "Add to Cart",
     "product.size": "Size",
+    "product.color": "Color",
     "product.quantity": "Quantity",
     "product.outOfStock": "Out of stock",
     "product.reviews": "Reviews",
