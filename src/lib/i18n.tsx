@@ -204,6 +204,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "shop.noProducts": "لم يتم العثور على منتجات.",
     "product.addToCart": "أضف إلى السلة",
     "product.size": "المقاس",
+    "product.color": "اللون",
     "product.quantity": "الكمية",
     "product.outOfStock": "نفد المخزون",
     "product.reviews": "التقييمات",
