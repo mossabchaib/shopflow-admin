@@ -32,6 +32,7 @@ const Cart = () => {
           user_id: user.id,
           product_id: item.product_id,
           size_id: item.size_id,
+          color_id: (item as any).color_id || null,
           quantity: item.quantity,
         });
       }
