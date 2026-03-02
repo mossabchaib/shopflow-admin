@@ -98,6 +98,7 @@ const Checkout = () => {
         order_id: orderData.id,
         product_id: item.products?.id,
         size_id: item.product_sizes?.id || null,
+        color_id: (item as any).product_colors?.id || null,
         quantity: item.quantity,
         unit_price: Number(item.products?.discount_price || item.products?.price || 0) + Number(item.product_sizes?.extra_price || 0),
         total_price: getItemPrice(item),
