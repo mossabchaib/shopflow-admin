@@ -120,6 +120,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "shop.noProducts": "Aucun produit trouvé.",
     "product.addToCart": "Ajouter au Panier",
     "product.size": "Taille",
+    "product.color": "Couleur",
     "product.quantity": "Quantité",
     "product.outOfStock": "Rupture de stock",
     "product.reviews": "Avis",
