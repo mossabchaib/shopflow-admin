@@ -86,15 +86,15 @@ const App = () => (
               <Route path="/admin/reviews" element={<AdminRoute><DashboardLayout><Reviews /></DashboardLayout></AdminRoute>} />
               <Route path="/admin/settings" element={<AdminRoute><DashboardLayout><SettingsPage /></DashboardLayout></AdminRoute>} />
 
-              {/* Client routes - public */}
+              {/* Client routes - ALL public (guests can browse, add to cart) */}
               <Route path="/" element={<ClientLayout><Home /></ClientLayout>} />
               <Route path="/shop" element={<ClientLayout><Shop /></ClientLayout>} />
               <Route path="/product/:id" element={<ClientLayout><ProductDetail /></ClientLayout>} />
               <Route path="/cart" element={<ClientLayout><Cart /></ClientLayout>} />
-
-              {/* Client routes - protected */}
-              <Route path="/favorites" element={<ProtectedRoute><ClientLayout><Favorites /></ClientLayout></ProtectedRoute>} />
               <Route path="/checkout" element={<ProtectedRoute><ClientLayout><Checkout /></ClientLayout></ProtectedRoute>} />
+
+              {/* Client routes - protected (login required) */}
+              <Route path="/favorites" element={<ProtectedRoute><ClientLayout><Favorites /></ClientLayout></ProtectedRoute>} />
 
               <Route path="*" element={<ClientLayout><NotFound /></ClientLayout>} />
             </Routes>
