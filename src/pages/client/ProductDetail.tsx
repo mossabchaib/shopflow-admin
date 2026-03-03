@@ -47,6 +47,7 @@ const ProductDetail = () => {
       setImages(imgRes.data || []);
       setSizes(sizeRes.data || []);
       setColors(colorRes.data || []);
+      setVariants(varRes.data || []);
 
       // Related products
       if (prodRes.data?.category_id) {
