@@ -192,21 +192,26 @@ const ProductDetail = () => {
             <div>
               <p className="text-sm font-medium text-foreground mb-2">{t("product.size")}</p>
               <div className="flex flex-wrap gap-2">
-                {sizes.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => setSelectedSize(s.id)}
-                    disabled={s.stock <= 0}
-                    className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                      selectedSize === s.id ? "border-primary bg-primary/10 text-primary" :
-                      s.stock <= 0 ? "border-border text-muted-foreground opacity-50 cursor-not-allowed" :
-                      "border-border text-foreground hover:border-primary"
-                    }`}
-                  >
-                    {s.size_label}
-                    {s.stock <= 0 && <span className="block text-xs">{t("product.outOfStock")}</span>}
-                  </button>
-                ))}
+                {sizes.map(s => {
+                  const sizeStock = selectedColor
+                    ? (variants.find(v => v.size_id === s.id && v.color_id === selectedColor)?.stock ?? 0)
+                    : variants.filter(v => v.size_id === s.id).reduce((a: number, v: any) => a + v.stock, 0);
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setSelectedSize(s.id)}
+                      disabled={sizeStock <= 0}
+                      className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                        selectedSize === s.id ? "border-primary bg-primary/10 text-primary" :
+                        sizeStock <= 0 ? "border-border text-muted-foreground opacity-50 cursor-not-allowed" :
+                        "border-border text-foreground hover:border-primary"
+                      }`}
+                    >
+                      {s.size_label}
+                      {sizeStock <= 0 && <span className="block text-xs">{t("product.outOfStock")}</span>}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
