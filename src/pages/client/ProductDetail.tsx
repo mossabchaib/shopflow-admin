@@ -22,6 +22,7 @@ const ProductDetail = () => {
   const [images, setImages] = useState<any[]>([]);
   const [sizes, setSizes] = useState<any[]>([]);
   const [colors, setColors] = useState<any[]>([]);
+  const [variants, setVariants] = useState<any[]>([]);
   const [related, setRelated] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
