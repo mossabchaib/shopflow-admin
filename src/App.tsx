@@ -83,7 +83,7 @@ const App = () => (
               <Route path="/admin/categories" element={<AdminRoute><DashboardLayout><Categories /></DashboardLayout></AdminRoute>} />
               <Route path="/admin/analytics" element={<AdminRoute><DashboardLayout><Analytics /></DashboardLayout></AdminRoute>} />
               <Route path="/admin/discounts" element={<AdminRoute><DashboardLayout><Discounts /></DashboardLayout></AdminRoute>} />
-              <Route path="/admin/reviews" element={<AdminRoute><DashboardLayout><Reviews /></DashboardLayout></AdminRoute>} />
+              <Route path="/admin/suppliers" element={<AdminRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminRoute>} />
               <Route path="/admin/settings" element={<AdminRoute><DashboardLayout><SettingsPage /></DashboardLayout></AdminRoute>} />
 
               {/* Client routes - ALL public (guests can browse, add to cart) */}

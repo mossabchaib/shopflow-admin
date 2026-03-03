@@ -29,9 +29,9 @@ const menuItems = [
   { title: "Orders", url: "/admin/orders", icon: ShoppingCart },
   { title: "Customers", url: "/admin/customers", icon: Users },
   { title: "Categories", url: "/admin/categories", icon: FolderTree },
+  { title: "Suppliers", url: "/admin/suppliers", icon: Truck },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
   { title: "Discounts", url: "/admin/discounts", icon: Ticket },
-  { title: "Reviews", url: "/admin/reviews", icon: Star },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 
