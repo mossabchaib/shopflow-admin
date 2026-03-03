@@ -14,7 +14,7 @@ import Customers from "./pages/Customers";
 import Categories from "./pages/Categories";
 import Analytics from "./pages/Analytics";
 import Discounts from "./pages/Discounts";
-import Reviews from "./pages/Reviews";
+import Suppliers from "./pages/Suppliers";
 import SettingsPage from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Register from "./pages/Register";
