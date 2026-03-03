@@ -152,29 +152,32 @@ const ProductDetail = () => {
             <div>
               <p className="text-sm font-medium text-foreground mb-2">{t("product.color") || "Color"}</p>
               <div className="flex flex-wrap gap-3">
-                {colors.map(c => (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelectedColor(c.id)}
-                    disabled={c.stock <= 0}
-                    title={c.color_name}
-                    className={`relative w-10 h-10 rounded-full border-2 transition-all ${
-                      selectedColor === c.id ? "border-primary ring-2 ring-primary/30 scale-110" :
-                      c.stock <= 0 ? "border-border opacity-40 cursor-not-allowed" :
-                      "border-border hover:border-primary"
-                    }`}
-                  >
-                    <span
-                      className="block w-full h-full rounded-full"
-                      style={{ backgroundColor: c.color_hex }}
-                    />
-                    {c.stock <= 0 && (
-                      <span className="absolute inset-0 flex items-center justify-center">
-                        <span className="w-8 h-0.5 bg-destructive rotate-45 rounded-full" />
-                      </span>
-                    )}
-                  </button>
-                ))}
+                {colors.map(c => {
+                  // Calculate available stock for this color (across all sizes or for selected size)
+                  const colorStock = selectedSize
+                    ? (variants.find(v => v.color_id === c.id && v.size_id === selectedSize)?.stock ?? 0)
+                    : variants.filter(v => v.color_id === c.id).reduce((a: number, v: any) => a + v.stock, 0);
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setSelectedColor(c.id)}
+                      disabled={colorStock <= 0}
+                      title={`${c.color_name} (${colorStock} in stock)`}
+                      className={`relative w-10 h-10 rounded-full border-2 transition-all ${
+                        selectedColor === c.id ? "border-primary ring-2 ring-primary/30 scale-110" :
+                        colorStock <= 0 ? "border-border opacity-40 cursor-not-allowed" :
+                        "border-border hover:border-primary"
+                      }`}
+                    >
+                      <span className="block w-full h-full rounded-full" style={{ backgroundColor: c.color_hex }} />
+                      {colorStock <= 0 && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="w-8 h-0.5 bg-destructive rotate-45 rounded-full" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
               {selectedColor && (
                 <p className="text-xs text-muted-foreground mt-1">
