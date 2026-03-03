@@ -6,9 +6,9 @@ import {
   FolderTree,
   BarChart3,
   Ticket,
-  Star,
   Settings,
   Store,
+  Truck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
