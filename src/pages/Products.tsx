@@ -11,44 +11,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-interface ProductSize {
-  id?: string;
-  size_label: string;
-  stock: number;
-  extra_price: number;
-}
-
-interface ProductColor {
-  id?: string;
-  color_name: string;
-  color_hex: string;
-  stock: number;
-}
+interface ProductSize { id?: string; size_label: string; extra_price: number; }
+interface ProductColor { id?: string; color_name: string; color_hex: string; }
+interface Variant { size_index: number; color_index: number; stock: number; }
+interface Supplier { id: string; name: string; }
 
 interface Product {
-  id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  discount_price: number | null;
-  category_id: string | null;
-  stock: number;
-  status: string;
-  created_at: string;
-  categories?: { name: string } | null;
+  id: string; name: string; description: string | null; price: number; cost_price: number; discount_price: number | null;
+  category_id: string | null; supplier_id: string | null; stock: number; status: string; created_at: string;
+  categories?: { name: string } | null; suppliers?: { name: string } | null;
   product_images?: { id: string; image_url: string; is_primary: boolean }[];
   product_sizes?: { id: string; size_label: string; stock: number; extra_price: number }[];
   product_colors?: { id: string; color_name: string; color_hex: string; stock: number }[];
+  product_variants?: { id: string; size_id: string; color_id: string; stock: number }[];
 }
 
-interface Category {
-  id: string;
-  name: string;
-}
+interface Category { id: string; name: string; }
 
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -61,19 +44,22 @@ const Products = () => {
   const { toast } = useToast();
 
   const [form, setForm] = useState({
-    name: "", description: "", price: "", discount_price: "", category_id: "", status: "active" as string,
+    name: "", description: "", price: "", cost_price: "", discount_price: "", category_id: "", supplier_id: "", status: "active" as string,
   });
-  const [sizes, setSizes] = useState<ProductSize[]>([{ size_label: "M", stock: 0, extra_price: 0 }]);
+  const [sizes, setSizes] = useState<ProductSize[]>([{ size_label: "M", extra_price: 0 }]);
   const [colors, setColors] = useState<ProductColor[]>([]);
+  const [variants, setVariants] = useState<Variant[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const fetchData = async () => {
-    const [prodRes, catRes] = await Promise.all([
-      supabase.from("products").select("*, categories(name), product_images(*), product_sizes(*), product_colors(*)").order("created_at", { ascending: false }),
+    const [prodRes, catRes, supRes] = await Promise.all([
+      supabase.from("products").select("*, categories(name), product_images(*), product_sizes(*), product_colors(*), product_variants(*)").order("created_at", { ascending: false }),
       supabase.from("categories").select("id, name").order("name"),
+      supabase.from("suppliers").select("id, name").order("name"),
     ]);
     if (prodRes.data) setProducts(prodRes.data as any);
     if (catRes.data) setCategories(catRes.data);
+    if (supRes.data) setSuppliers(supRes.data as any);
     setLoading(false);
   };
 
@@ -87,18 +73,34 @@ const Products = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", discount_price: "", category_id: "", status: "active" });
-    setSizes([{ size_label: "M", stock: 0, extra_price: 0 }]);
+    setForm({ name: "", description: "", price: "", cost_price: "", discount_price: "", category_id: "", supplier_id: "", status: "active" });
+    setSizes([{ size_label: "M", extra_price: 0 }]);
     setColors([]);
+    setVariants([]);
     setImageUrls([]);
     setDialogOpen(true);
   };
 
   const openEdit = (p: Product) => {
     setEditing(p);
-    setForm({ name: p.name, description: p.description || "", price: String(p.price), discount_price: p.discount_price ? String(p.discount_price) : "", category_id: p.category_id || "", status: p.status });
-    setSizes(p.product_sizes?.map(s => ({ id: s.id, size_label: s.size_label, stock: s.stock, extra_price: Number(s.extra_price) })) || []);
-    setColors(p.product_colors?.map(c => ({ id: c.id, color_name: c.color_name, color_hex: c.color_hex, stock: c.stock })) || []);
+    setForm({
+      name: p.name, description: p.description || "", price: String(p.price),
+      cost_price: String(p.cost_price || 0), discount_price: p.discount_price ? String(p.discount_price) : "",
+      category_id: p.category_id || "", supplier_id: p.supplier_id || "", status: p.status
+    });
+    const sSizes = p.product_sizes?.map(s => ({ id: s.id, size_label: s.size_label, extra_price: Number(s.extra_price) })) || [];
+    const sColors = p.product_colors?.map(c => ({ id: c.id, color_name: c.color_name, color_hex: c.color_hex })) || [];
+    setSizes(sSizes);
+    setColors(sColors);
+
+    // Map variants back to indices
+    const vList: Variant[] = [];
+    (p.product_variants || []).forEach(v => {
+      const sIdx = sSizes.findIndex(s => s.id === v.size_id);
+      const cIdx = sColors.findIndex(c => c.id === v.color_id);
+      if (sIdx >= 0 && cIdx >= 0) vList.push({ size_index: sIdx, color_index: cIdx, stock: v.stock });
+    });
+    setVariants(vList);
     setImageUrls(p.product_images?.map(i => i.image_url) || []);
     setDialogOpen(true);
   };
@@ -121,27 +123,44 @@ const Products = () => {
   };
 
   const removeImage = (idx: number) => setImageUrls(prev => prev.filter((_, i) => i !== idx));
-
-  const addSize = () => setSizes(prev => [...prev, { size_label: "", stock: 0, extra_price: 0 }]);
-  const removeSize = (idx: number) => setSizes(prev => prev.filter((_, i) => i !== idx));
+  const addSize = () => setSizes(prev => [...prev, { size_label: "", extra_price: 0 }]);
+  const removeSize = (idx: number) => {
+    setSizes(prev => prev.filter((_, i) => i !== idx));
+    setVariants(prev => prev.filter(v => v.size_index !== idx).map(v => ({ ...v, size_index: v.size_index > idx ? v.size_index - 1 : v.size_index })));
+  };
   const updateSize = (idx: number, field: string, value: any) => setSizes(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
 
-  const addColor = () => setColors(prev => [...prev, { color_name: "", color_hex: "#000000", stock: 0 }]);
-  const removeColor = (idx: number) => setColors(prev => prev.filter((_, i) => i !== idx));
+  const addColor = () => setColors(prev => [...prev, { color_name: "", color_hex: "#000000" }]);
+  const removeColor = (idx: number) => {
+    setColors(prev => prev.filter((_, i) => i !== idx));
+    setVariants(prev => prev.filter(v => v.color_index !== idx).map(v => ({ ...v, color_index: v.color_index > idx ? v.color_index - 1 : v.color_index })));
+  };
   const updateColor = (idx: number, field: string, value: any) => setColors(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
+
+  const getVariantStock = (sIdx: number, cIdx: number) => {
+    return variants.find(v => v.size_index === sIdx && v.color_index === cIdx)?.stock ?? 0;
+  };
+  const setVariantStock = (sIdx: number, cIdx: number, stock: number) => {
+    setVariants(prev => {
+      const existing = prev.findIndex(v => v.size_index === sIdx && v.color_index === cIdx);
+      if (existing >= 0) return prev.map((v, i) => i === existing ? { ...v, stock } : v);
+      return [...prev, { size_index: sIdx, color_index: cIdx, stock }];
+    });
+  };
+
+  const totalStock = variants.reduce((a, v) => a + v.stock, 0);
 
   const handleSave = async () => {
     if (!form.name || !form.price) { toast({ title: "Error", description: "Name and price are required", variant: "destructive" }); return; }
     setSaving(true);
-    const sizeStock = sizes.reduce((a, s) => a + Number(s.stock), 0);
-    const colorStock = colors.reduce((a, c) => a + Number(c.stock), 0);
-    const totalStock = Math.max(sizeStock, colorStock) || sizeStock + colorStock;
     const productData = {
       name: form.name,
       description: form.description || null,
       price: parseFloat(form.price),
+      cost_price: parseFloat(form.cost_price) || 0,
       discount_price: form.discount_price ? parseFloat(form.discount_price) : null,
       category_id: form.category_id || null,
+      supplier_id: form.supplier_id || null,
       stock: totalStock,
       status: form.status as any,
     };
@@ -158,20 +177,48 @@ const Products = () => {
     }
 
     if (productId) {
-      // Update images
+      // Images
       await supabase.from("product_images").delete().eq("product_id", productId);
       if (imageUrls.length > 0) {
         await supabase.from("product_images").insert(imageUrls.map((url, i) => ({ product_id: productId!, image_url: url, is_primary: i === 0, sort_order: i })));
       }
-      // Update sizes
+
+      // Sizes
+      await supabase.from("product_variants").delete().eq("product_id", productId);
       await supabase.from("product_sizes").delete().eq("product_id", productId);
-      if (sizes.length > 0) {
-        await supabase.from("product_sizes").insert(sizes.filter(s => s.size_label).map(s => ({ product_id: productId!, size_label: s.size_label, stock: Number(s.stock), extra_price: Number(s.extra_price) })));
+      const validSizes = sizes.filter(s => s.size_label);
+      let sizeIds: string[] = [];
+      if (validSizes.length > 0) {
+        const { data: sizeData } = await supabase.from("product_sizes").insert(
+          validSizes.map(s => ({ product_id: productId!, size_label: s.size_label, stock: 0, extra_price: Number(s.extra_price) }))
+        ).select("id");
+        sizeIds = (sizeData || []).map(s => s.id);
       }
-      // Update colors
+
+      // Colors
       await supabase.from("product_colors").delete().eq("product_id", productId);
-      if (colors.length > 0) {
-        await supabase.from("product_colors").insert(colors.filter(c => c.color_name).map(c => ({ product_id: productId!, color_name: c.color_name, color_hex: c.color_hex, stock: Number(c.stock) })));
+      const validColors = colors.filter(c => c.color_name);
+      let colorIds: string[] = [];
+      if (validColors.length > 0) {
+        const { data: colorData } = await supabase.from("product_colors").insert(
+          validColors.map(c => ({ product_id: productId!, color_name: c.color_name, color_hex: c.color_hex, stock: 0 }))
+        ).select("id");
+        colorIds = (colorData || []).map(c => c.id);
+      }
+
+      // Variants (size+color+stock)
+      if (sizeIds.length > 0 && colorIds.length > 0) {
+        const variantInserts = variants
+          .filter(v => v.stock > 0 && v.size_index < validSizes.length && v.color_index < validColors.length)
+          .map(v => ({
+            product_id: productId!,
+            size_id: sizeIds[v.size_index],
+            color_id: colorIds[v.color_index],
+            stock: v.stock,
+          }));
+        if (variantInserts.length > 0) {
+          await supabase.from("product_variants").insert(variantInserts);
+        }
       }
     }
 
@@ -187,6 +234,9 @@ const Products = () => {
     toast({ title: "Product deleted" });
     fetchData();
   };
+
+  const profit = form.price && form.cost_price ? (parseFloat(form.price) - parseFloat(form.cost_price)) : 0;
+  const profitPct = form.cost_price && parseFloat(form.cost_price) > 0 ? ((profit / parseFloat(form.cost_price)) * 100).toFixed(1) : "0";
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
@@ -220,6 +270,7 @@ const Products = () => {
             <tr className="border-b">
               <th className="table-header text-left p-4">Product</th>
               <th className="table-header text-left p-4">Category</th>
+              <th className="table-header text-left p-4">Cost</th>
               <th className="table-header text-left p-4">Price</th>
               <th className="table-header text-left p-4">Stock</th>
               <th className="table-header text-left p-4">Status</th>
@@ -238,6 +289,7 @@ const Products = () => {
                     </div>
                   </td>
                   <td className="p-4 text-sm text-muted-foreground">{p.categories?.name || "—"}</td>
+                  <td className="p-4 text-sm text-muted-foreground">${Number(p.cost_price || 0).toFixed(2)}</td>
                   <td className="p-4 text-sm font-medium text-foreground">${Number(p.price).toFixed(2)}</td>
                   <td className="p-4"><span className={`text-sm font-medium ${p.stock < 10 ? "text-destructive" : "text-foreground"}`}>{p.stock}</span></td>
                   <td className="p-4"><span className={`status-badge ${p.status === "active" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>{p.status === "active" ? "Active" : "Draft"}</span></td>
@@ -257,28 +309,45 @@ const Products = () => {
                 </tr>
               );
             })}
-            {filtered.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No products found</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No products found</td></tr>}
           </tbody>
         </table>
       </div>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Edit Product" : "Add Product"}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
             <div><Label>Name</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Product name" className="mt-1.5" /></div>
             <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description" className="mt-1.5" /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Price</Label><Input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="mt-1.5" /></div>
+
+            {/* Pricing */}
+            <div className="grid grid-cols-3 gap-4">
+              <div><Label>Cost Price (Purchase)</Label><Input type="number" step="0.01" value={form.cost_price} onChange={e => setForm({ ...form, cost_price: e.target.value })} className="mt-1.5" /></div>
+              <div><Label>Sell Price</Label><Input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="mt-1.5" /></div>
               <div><Label>Discount Price</Label><Input type="number" step="0.01" value={form.discount_price} onChange={e => setForm({ ...form, discount_price: e.target.value })} className="mt-1.5" /></div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            {parseFloat(form.cost_price) > 0 && parseFloat(form.price) > 0 && (
+              <div className="flex gap-4 text-sm">
+                <span className="text-muted-foreground">Profit: <span className={`font-semibold ${profit >= 0 ? "text-success" : "text-destructive"}`}>${profit.toFixed(2)} ({profitPct}%)</span></span>
+                <span className="text-muted-foreground">Total Stock: <span className="font-semibold text-foreground">{totalStock}</span></span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Category</Label>
                 <Select value={form.category_id} onValueChange={v => setForm({ ...form, category_id: v })}>
                   <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Supplier</Label>
+                <Select value={form.supplier_id} onValueChange={v => setForm({ ...form, supplier_id: v })}>
+                  <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                  <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="flex items-center justify-between pt-6">
@@ -307,14 +376,13 @@ const Products = () => {
             {/* Sizes */}
             <div>
               <div className="flex items-center justify-between">
-                <Label>Sizes & Stock</Label>
+                <Label>Sizes</Label>
                 <Button variant="outline" size="sm" onClick={addSize}><Plus className="h-3 w-3 mr-1" />Add Size</Button>
               </div>
               <div className="space-y-2 mt-2">
                 {sizes.map((s, i) => (
                   <div key={i} className="flex gap-2 items-center">
                     <Input placeholder="Size (S, M, L...)" value={s.size_label} onChange={e => updateSize(i, "size_label", e.target.value)} className="flex-1" />
-                    <Input type="number" placeholder="Stock" value={s.stock} onChange={e => updateSize(i, "stock", parseInt(e.target.value) || 0)} className="w-24" />
                     <Input type="number" step="0.01" placeholder="Extra $" value={s.extra_price} onChange={e => updateSize(i, "extra_price", parseFloat(e.target.value) || 0)} className="w-24" />
                     {sizes.length > 1 && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeSize(i)}><X className="h-4 w-4" /></Button>}
                   </div>
@@ -325,7 +393,7 @@ const Products = () => {
             {/* Colors */}
             <div>
               <div className="flex items-center justify-between">
-                <Label>Colors & Stock</Label>
+                <Label>Colors</Label>
                 <Button variant="outline" size="sm" onClick={addColor}><Plus className="h-3 w-3 mr-1" />Add Color</Button>
               </div>
               <div className="space-y-2 mt-2">
@@ -333,13 +401,54 @@ const Products = () => {
                   <div key={i} className="flex gap-2 items-center">
                     <Input placeholder="Color name" value={c.color_name} onChange={e => updateColor(i, "color_name", e.target.value)} className="flex-1" />
                     <input type="color" value={c.color_hex} onChange={e => updateColor(i, "color_hex", e.target.value)} className="h-9 w-12 rounded border border-border cursor-pointer" />
-                    <Input type="number" placeholder="Stock" value={c.stock} onChange={e => updateColor(i, "stock", parseInt(e.target.value) || 0)} className="w-24" />
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeColor(i)}><X className="h-4 w-4" /></Button>
                   </div>
                 ))}
-                {colors.length === 0 && <p className="text-xs text-muted-foreground">No colors added. Click "Add Color" to add color variants.</p>}
+                {colors.length === 0 && <p className="text-xs text-muted-foreground">No colors added yet.</p>}
               </div>
             </div>
+
+            {/* Stock Matrix (Size x Color) */}
+            {sizes.filter(s => s.size_label).length > 0 && colors.filter(c => c.color_name).length > 0 && (
+              <div>
+                <Label>Stock per Size × Color</Label>
+                <div className="overflow-x-auto mt-2">
+                  <table className="w-full border text-sm">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="p-2 border text-left font-medium">Size \ Color</th>
+                        {colors.filter(c => c.color_name).map((c, ci) => (
+                          <th key={ci} className="p-2 border text-center font-medium">
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="w-3 h-3 rounded-full border" style={{ backgroundColor: c.color_hex }} />
+                              {c.color_name}
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sizes.filter(s => s.size_label).map((s, si) => (
+                        <tr key={si}>
+                          <td className="p-2 border font-medium">{s.size_label}</td>
+                          {colors.filter(c => c.color_name).map((_, ci) => (
+                            <td key={ci} className="p-1 border">
+                              <Input
+                                type="number"
+                                min="0"
+                                value={getVariantStock(si, ci)}
+                                onChange={e => setVariantStock(si, ci, parseInt(e.target.value) || 0)}
+                                className="w-20 mx-auto text-center h-8"
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             <Button className="w-full" onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{editing ? "Update Product" : "Create Product"}</Button>
           </div>
@@ -358,35 +467,47 @@ const Products = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div><span className="text-sm text-muted-foreground">Name</span><p className="font-medium">{selected.name}</p></div>
                 <div><span className="text-sm text-muted-foreground">Category</span><p>{selected.categories?.name || "—"}</p></div>
-                <div><span className="text-sm text-muted-foreground">Price</span><p className="font-medium">${Number(selected.price).toFixed(2)}</p></div>
+                <div><span className="text-sm text-muted-foreground">Cost Price</span><p>${Number(selected.cost_price || 0).toFixed(2)}</p></div>
+                <div><span className="text-sm text-muted-foreground">Sell Price</span><p className="font-medium">${Number(selected.price).toFixed(2)}</p></div>
                 <div><span className="text-sm text-muted-foreground">Discount</span><p>{selected.discount_price ? `$${Number(selected.discount_price).toFixed(2)}` : "—"}</p></div>
+                <div><span className="text-sm text-muted-foreground">Profit</span><p className="font-medium text-success">${(Number(selected.price) - Number(selected.cost_price || 0)).toFixed(2)}</p></div>
                 <div><span className="text-sm text-muted-foreground">Total Stock</span><p>{selected.stock}</p></div>
                 <div><span className="text-sm text-muted-foreground">Status</span><p><span className={`status-badge ${selected.status === "active" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>{selected.status}</span></p></div>
               </div>
               {selected.description && <div><span className="text-sm text-muted-foreground">Description</span><p className="text-sm">{selected.description}</p></div>}
-              {selected.product_sizes && selected.product_sizes.length > 0 && (
+
+              {/* Variant stock matrix in view */}
+              {selected.product_sizes && selected.product_sizes.length > 0 && selected.product_colors && selected.product_colors.length > 0 && (
                 <div>
-                  <span className="text-sm text-muted-foreground">Sizes</span>
-                  <div className="mt-1 space-y-1">{selected.product_sizes.map(s => (
-                    <div key={s.id} className="flex justify-between text-sm bg-muted/50 px-3 py-1.5 rounded">
-                      <span className="font-medium">{s.size_label}</span>
-                      <span>Stock: {s.stock} {Number(s.extra_price) > 0 && `(+$${Number(s.extra_price).toFixed(2)})`}</span>
-                    </div>
-                  ))}</div>
-                </div>
-              )}
-              {selected.product_colors && selected.product_colors.length > 0 && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Colors</span>
-                  <div className="mt-1 space-y-1">{selected.product_colors.map(c => (
-                    <div key={c.id} className="flex items-center justify-between text-sm bg-muted/50 px-3 py-1.5 rounded">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full border" style={{ backgroundColor: c.color_hex }} />
-                        <span className="font-medium">{c.color_name}</span>
-                      </div>
-                      <span>Stock: {c.stock}</span>
-                    </div>
-                  ))}</div>
+                  <span className="text-sm text-muted-foreground">Stock (Size × Color)</span>
+                  <div className="overflow-x-auto mt-1">
+                    <table className="w-full border text-sm">
+                      <thead>
+                        <tr className="bg-muted/50">
+                          <th className="p-2 border text-left">Size</th>
+                          {selected.product_colors.map(c => (
+                            <th key={c.id} className="p-2 border text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="w-3 h-3 rounded-full border" style={{ backgroundColor: c.color_hex }} />
+                                {c.color_name}
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selected.product_sizes.map(s => (
+                          <tr key={s.id}>
+                            <td className="p-2 border font-medium">{s.size_label}</td>
+                            {selected.product_colors!.map(c => {
+                              const v = selected.product_variants?.find(v => v.size_id === s.id && v.color_id === c.id);
+                              return <td key={c.id} className="p-2 border text-center">{v?.stock ?? 0}</td>;
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
