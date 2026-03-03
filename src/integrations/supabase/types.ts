@@ -436,9 +436,59 @@ export type Database = {
           },
         ]
       }
+      product_variants: {
+        Row: {
+          color_id: string
+          created_at: string | null
+          id: string
+          product_id: string
+          size_id: string
+          stock: number
+        }
+        Insert: {
+          color_id: string
+          created_at?: string | null
+          id?: string
+          product_id: string
+          size_id: string
+          stock?: number
+        }
+        Update: {
+          color_id?: string
+          created_at?: string | null
+          id?: string
+          product_id?: string
+          size_id?: string
+          stock?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_color_id_fkey"
+            columns: ["color_id"]
+            isOneToOne: false
+            referencedRelation: "product_colors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_size_id_fkey"
+            columns: ["size_id"]
+            isOneToOne: false
+            referencedRelation: "product_sizes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category_id: string | null
+          cost_price: number | null
           created_at: string | null
           description: string | null
           discount_price: number | null
@@ -447,10 +497,12 @@ export type Database = {
           price: number
           status: Database["public"]["Enums"]["product_status"] | null
           stock: number | null
+          supplier_id: string | null
           updated_at: string | null
         }
         Insert: {
           category_id?: string | null
+          cost_price?: number | null
           created_at?: string | null
           description?: string | null
           discount_price?: number | null
@@ -459,10 +511,12 @@ export type Database = {
           price?: number
           status?: Database["public"]["Enums"]["product_status"] | null
           stock?: number | null
+          supplier_id?: string | null
           updated_at?: string | null
         }
         Update: {
           category_id?: string | null
+          cost_price?: number | null
           created_at?: string | null
           description?: string | null
           discount_price?: number | null
@@ -471,6 +525,7 @@ export type Database = {
           price?: number
           status?: Database["public"]["Enums"]["product_status"] | null
           stock?: number | null
+          supplier_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -479,6 +534,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -589,6 +651,39 @@ export type Database = {
           shipping_price?: number | null
           store_name?: string | null
           timezone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
           updated_at?: string | null
         }
         Relationships: []

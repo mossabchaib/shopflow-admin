@@ -22,6 +22,7 @@ const ProductDetail = () => {
   const [images, setImages] = useState<any[]>([]);
   const [sizes, setSizes] = useState<any[]>([]);
   const [colors, setColors] = useState<any[]>([]);
+  const [variants, setVariants] = useState<any[]>([]);
   const [related, setRelated] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -34,17 +35,19 @@ const ProductDetail = () => {
     if (!id) return;
     const fetchAll = async () => {
       setLoading(true);
-      const [prodRes, imgRes, sizeRes, colorRes] = await Promise.all([
+      const [prodRes, imgRes, sizeRes, colorRes, varRes] = await Promise.all([
         supabase.from("products").select("*, categories(id, name)").eq("id", id).single(),
         supabase.from("product_images").select("*").eq("product_id", id).order("sort_order"),
         supabase.from("product_sizes").select("*").eq("product_id", id).order("size_label"),
         supabase.from("product_colors").select("*").eq("product_id", id).order("color_name"),
+        supabase.from("product_variants").select("*").eq("product_id", id),
       ]);
 
       setProduct(prodRes.data);
       setImages(imgRes.data || []);
       setSizes(sizeRes.data || []);
       setColors(colorRes.data || []);
+      setVariants(varRes.data || []);
 
       // Related products
       if (prodRes.data?.category_id) {
@@ -149,29 +152,32 @@ const ProductDetail = () => {
             <div>
               <p className="text-sm font-medium text-foreground mb-2">{t("product.color") || "Color"}</p>
               <div className="flex flex-wrap gap-3">
-                {colors.map(c => (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelectedColor(c.id)}
-                    disabled={c.stock <= 0}
-                    title={c.color_name}
-                    className={`relative w-10 h-10 rounded-full border-2 transition-all ${
-                      selectedColor === c.id ? "border-primary ring-2 ring-primary/30 scale-110" :
-                      c.stock <= 0 ? "border-border opacity-40 cursor-not-allowed" :
-                      "border-border hover:border-primary"
-                    }`}
-                  >
-                    <span
-                      className="block w-full h-full rounded-full"
-                      style={{ backgroundColor: c.color_hex }}
-                    />
-                    {c.stock <= 0 && (
-                      <span className="absolute inset-0 flex items-center justify-center">
-                        <span className="w-8 h-0.5 bg-destructive rotate-45 rounded-full" />
-                      </span>
-                    )}
-                  </button>
-                ))}
+                {colors.map(c => {
+                  // Calculate available stock for this color (across all sizes or for selected size)
+                  const colorStock = selectedSize
+                    ? (variants.find(v => v.color_id === c.id && v.size_id === selectedSize)?.stock ?? 0)
+                    : variants.filter(v => v.color_id === c.id).reduce((a: number, v: any) => a + v.stock, 0);
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setSelectedColor(c.id)}
+                      disabled={colorStock <= 0}
+                      title={`${c.color_name} (${colorStock} in stock)`}
+                      className={`relative w-10 h-10 rounded-full border-2 transition-all ${
+                        selectedColor === c.id ? "border-primary ring-2 ring-primary/30 scale-110" :
+                        colorStock <= 0 ? "border-border opacity-40 cursor-not-allowed" :
+                        "border-border hover:border-primary"
+                      }`}
+                    >
+                      <span className="block w-full h-full rounded-full" style={{ backgroundColor: c.color_hex }} />
+                      {colorStock <= 0 && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="w-8 h-0.5 bg-destructive rotate-45 rounded-full" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
               {selectedColor && (
                 <p className="text-xs text-muted-foreground mt-1">
@@ -186,21 +192,26 @@ const ProductDetail = () => {
             <div>
               <p className="text-sm font-medium text-foreground mb-2">{t("product.size")}</p>
               <div className="flex flex-wrap gap-2">
-                {sizes.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => setSelectedSize(s.id)}
-                    disabled={s.stock <= 0}
-                    className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                      selectedSize === s.id ? "border-primary bg-primary/10 text-primary" :
-                      s.stock <= 0 ? "border-border text-muted-foreground opacity-50 cursor-not-allowed" :
-                      "border-border text-foreground hover:border-primary"
-                    }`}
-                  >
-                    {s.size_label}
-                    {s.stock <= 0 && <span className="block text-xs">{t("product.outOfStock")}</span>}
-                  </button>
-                ))}
+                {sizes.map(s => {
+                  const sizeStock = selectedColor
+                    ? (variants.find(v => v.size_id === s.id && v.color_id === selectedColor)?.stock ?? 0)
+                    : variants.filter(v => v.size_id === s.id).reduce((a: number, v: any) => a + v.stock, 0);
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setSelectedSize(s.id)}
+                      disabled={sizeStock <= 0}
+                      className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                        selectedSize === s.id ? "border-primary bg-primary/10 text-primary" :
+                        sizeStock <= 0 ? "border-border text-muted-foreground opacity-50 cursor-not-allowed" :
+                        "border-border text-foreground hover:border-primary"
+                      }`}
+                    >
+                      {s.size_label}
+                      {sizeStock <= 0 && <span className="block text-xs">{t("product.outOfStock")}</span>}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

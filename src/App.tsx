@@ -14,7 +14,7 @@ import Customers from "./pages/Customers";
 import Categories from "./pages/Categories";
 import Analytics from "./pages/Analytics";
 import Discounts from "./pages/Discounts";
-import Reviews from "./pages/Reviews";
+import Suppliers from "./pages/Suppliers";
 import SettingsPage from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Register from "./pages/Register";
@@ -83,7 +83,7 @@ const App = () => (
               <Route path="/admin/categories" element={<AdminRoute><DashboardLayout><Categories /></DashboardLayout></AdminRoute>} />
               <Route path="/admin/analytics" element={<AdminRoute><DashboardLayout><Analytics /></DashboardLayout></AdminRoute>} />
               <Route path="/admin/discounts" element={<AdminRoute><DashboardLayout><Discounts /></DashboardLayout></AdminRoute>} />
-              <Route path="/admin/reviews" element={<AdminRoute><DashboardLayout><Reviews /></DashboardLayout></AdminRoute>} />
+              <Route path="/admin/suppliers" element={<AdminRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminRoute>} />
               <Route path="/admin/settings" element={<AdminRoute><DashboardLayout><SettingsPage /></DashboardLayout></AdminRoute>} />
 
               {/* Client routes - ALL public (guests can browse, add to cart) */}
