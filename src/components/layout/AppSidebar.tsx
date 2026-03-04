@@ -6,12 +6,12 @@ import {
   FolderTree,
   BarChart3,
   Ticket,
-  Settings,
   Store,
   Truck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useI18n } from "@/lib/i18n";
 import {
   Sidebar,
   SidebarContent,
@@ -24,24 +24,24 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-  { title: "Products", url: "/admin/products", icon: Package },
-  { title: "Orders", url: "/admin/orders", icon: ShoppingCart },
-  { title: "Customers", url: "/admin/customers", icon: Users },
-  { title: "Categories", url: "/admin/categories", icon: FolderTree },
-  { title: "Suppliers", url: "/admin/suppliers", icon: Truck },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
-  { title: "Discounts", url: "/admin/discounts", icon: Ticket },
-  { title: "Settings", url: "/admin/settings", icon: Settings },
+  { titleKey: "sidebar.dashboard", url: "/admin", icon: LayoutDashboard },
+  { titleKey: "sidebar.products", url: "/admin/products", icon: Package },
+  { titleKey: "sidebar.orders", url: "/admin/orders", icon: ShoppingCart },
+  { titleKey: "sidebar.customers", url: "/admin/customers", icon: Users },
+  { titleKey: "sidebar.categories", url: "/admin/categories", icon: FolderTree },
+  { titleKey: "sidebar.suppliers", url: "/admin/suppliers", icon: Truck },
+  { titleKey: "sidebar.analytics", url: "/admin/analytics", icon: BarChart3 },
+  { titleKey: "sidebar.discounts", url: "/admin/discounts", icon: Ticket },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { t } = useI18n();
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
+    <Sidebar collapsible="icon" className="border-r-0" side="left">
       <div className="h-16 flex items-center gap-3 px-4 border-b border-sidebar-border">
         <div className="h-9 w-9 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
           <Store className="h-5 w-5 text-sidebar-primary-foreground" />
@@ -49,7 +49,7 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="overflow-hidden">
             <h1 className="text-sm font-bold text-sidebar-foreground truncate">StoreAdmin</h1>
-            <p className="text-xs text-sidebar-muted truncate">eCommerce Dashboard</p>
+            <p className="text-xs text-sidebar-muted truncate">{t("sidebar.ecommerceDashboard")}</p>
           </div>
         )}
       </div>
@@ -63,7 +63,7 @@ export function AppSidebar() {
                     ? location.pathname === "/admin"
                     : location.pathname.startsWith(item.url);
                 return (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.titleKey}>
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
@@ -72,7 +72,7 @@ export function AppSidebar() {
                         activeClassName=""
                       >
                         <item.icon className="h-5 w-5 flex-shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
+                        {!collapsed && <span>{t(item.titleKey)}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

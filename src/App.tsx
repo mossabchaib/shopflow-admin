@@ -15,7 +15,6 @@ import Categories from "./pages/Categories";
 import Analytics from "./pages/Analytics";
 import Discounts from "./pages/Discounts";
 import Suppliers from "./pages/Suppliers";
-import SettingsPage from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -84,16 +83,13 @@ const App = () => (
               <Route path="/admin/analytics" element={<AdminRoute><DashboardLayout><Analytics /></DashboardLayout></AdminRoute>} />
               <Route path="/admin/discounts" element={<AdminRoute><DashboardLayout><Discounts /></DashboardLayout></AdminRoute>} />
               <Route path="/admin/suppliers" element={<AdminRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminRoute>} />
-              <Route path="/admin/settings" element={<AdminRoute><DashboardLayout><SettingsPage /></DashboardLayout></AdminRoute>} />
 
-              {/* Client routes - ALL public (guests can browse, add to cart) */}
+              {/* Client routes */}
               <Route path="/" element={<ClientLayout><Home /></ClientLayout>} />
               <Route path="/shop" element={<ClientLayout><Shop /></ClientLayout>} />
               <Route path="/product/:id" element={<ClientLayout><ProductDetail /></ClientLayout>} />
               <Route path="/cart" element={<ClientLayout><Cart /></ClientLayout>} />
               <Route path="/checkout" element={<ProtectedRoute><ClientLayout><Checkout /></ClientLayout></ProtectedRoute>} />
-
-              {/* Client routes - protected (login required) */}
               <Route path="/favorites" element={<ProtectedRoute><ClientLayout><Favorites /></ClientLayout></ProtectedRoute>} />
 
               <Route path="*" element={<ClientLayout><NotFound /></ClientLayout>} />
