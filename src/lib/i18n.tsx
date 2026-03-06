@@ -165,6 +165,7 @@ const translations: Record<Lang, Record<string, string>> = {
     // Orders page
     "admin.orders": "Orders",
     "admin.ordersTotal": "orders total",
+    "admin.guest": "Guest",
     "admin.searchOrders": "Search orders...",
     "admin.orderId": "Order ID",
     "admin.customer": "Customer",
