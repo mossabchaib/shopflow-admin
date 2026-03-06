@@ -54,7 +54,7 @@ const Orders = () => {
   useEffect(() => { fetchOrders(); }, []);
 
   const filtered = orders.filter((o) => {
-    const matchSearch = o.id.toLowerCase().includes(search.toLowerCase()) || o.profile?.name?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = o.id.toLowerCase().includes(search.toLowerCase()) || o.displayName?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "All" || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
