@@ -165,6 +165,7 @@ const translations: Record<Lang, Record<string, string>> = {
     // Orders page
     "admin.orders": "Orders",
     "admin.ordersTotal": "orders total",
+    "admin.guest": "Guest",
     "admin.searchOrders": "Search orders...",
     "admin.orderId": "Order ID",
     "admin.customer": "Customer",
@@ -420,6 +421,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.nameAndPriceRequired": "Nom et prix sont obligatoires",
     "admin.orders": "Commandes",
     "admin.ordersTotal": "commandes au total",
+    "admin.guest": "Invité",
     "admin.searchOrders": "Rechercher des commandes...",
     "admin.orderId": "ID Commande",
     "admin.customer": "Client",
@@ -663,6 +665,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.nameAndPriceRequired": "الاسم والسعر مطلوبان",
     "admin.orders": "الطلبات",
     "admin.ordersTotal": "طلب إجمالي",
+    "admin.guest": "زائر",
     "admin.searchOrders": "البحث عن طلبات...",
     "admin.orderId": "رقم الطلب",
     "admin.customer": "العميل",

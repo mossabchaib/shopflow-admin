@@ -31,7 +31,7 @@ const Orders = () => {
   const fetchOrders = async () => {
     const { data, error } = await supabase
       .from("orders")
-      .select("*, order_items(*, products(name), product_sizes(size_label))")
+      .select("*, order_items(*, products(name), product_sizes(size_label)), addresses(*)")
       .order("created_at", { ascending: false });
     if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); setLoading(false); return; }
 
@@ -42,14 +42,19 @@ const Orders = () => {
       (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p; });
     }
 
-    setOrders((data || []).map((o: any) => ({ ...o, profile: profilesMap[o.customer_id] || null })));
+    setOrders((data || []).map((o: any) => ({
+      ...o,
+      profile: profilesMap[o.customer_id] || null,
+      displayName: profilesMap[o.customer_id]?.name || o.guest_name || t("admin.guest"),
+      displayEmail: profilesMap[o.customer_id]?.email || o.guest_email || "",
+    })));
     setLoading(false);
   };
 
   useEffect(() => { fetchOrders(); }, []);
 
   const filtered = orders.filter((o) => {
-    const matchSearch = o.id.toLowerCase().includes(search.toLowerCase()) || o.profile?.name?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = o.id.toLowerCase().includes(search.toLowerCase()) || o.displayName?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "All" || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -103,7 +108,10 @@ const Orders = () => {
             {filtered.map((order) => (
               <tr key={order.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                 <td className="p-4 text-sm font-medium text-primary font-mono">{order.id.slice(0, 8)}...</td>
-                <td className="p-4 text-sm text-foreground">{order.profile?.name || "—"}</td>
+                <td className="p-4 text-sm text-foreground">
+                  <div>{order.displayName}</div>
+                  {!order.customer_id && <span className="text-xs text-muted-foreground">({t("admin.guest")})</span>}
+                </td>
                 <td className="p-4 text-sm font-medium text-foreground">${Number(order.total).toFixed(2)}</td>
                 <td className="p-4 text-sm text-muted-foreground">{order.payment_method.replace("_", " ")}</td>
                 <td className="p-4"><span className={`status-badge ${statusColors[order.status] || ""}`}>{order.status}</span></td>
@@ -125,7 +133,13 @@ const Orders = () => {
             <div className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div><span className="text-sm text-muted-foreground">{t("admin.orderId")}</span><p className="font-mono text-sm">{selected.id}</p></div>
-                <div><span className="text-sm text-muted-foreground">{t("admin.customer")}</span><p>{selected.profile?.name || "—"}</p></div>
+                <div>
+                  <span className="text-sm text-muted-foreground">{t("admin.customer")}</span>
+                  <p>{selected.displayName}</p>
+                  {selected.displayEmail && <p className="text-xs text-muted-foreground">{selected.displayEmail}</p>}
+                  {selected.guest_phone && <p className="text-xs text-muted-foreground">{selected.guest_phone}</p>}
+                  {!selected.customer_id && <span className="text-xs px-2 py-0.5 rounded bg-warning/10 text-warning">{t("admin.guest")}</span>}
+                </div>
                 <div><span className="text-sm text-muted-foreground">{t("admin.payment")}</span><p>{selected.payment_method.replace("_", " ")}</p></div>
                 <div><span className="text-sm text-muted-foreground">{t("admin.date")}</span><p>{new Date(selected.created_at).toLocaleString()}</p></div>
               </div>

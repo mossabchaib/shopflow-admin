@@ -272,6 +272,9 @@ export type Database = {
           created_at: string | null
           customer_id: string | null
           discount_amount: number | null
+          guest_email: string | null
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           notes: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -287,6 +290,9 @@ export type Database = {
           created_at?: string | null
           customer_id?: string | null
           discount_amount?: number | null
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           notes?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
@@ -302,6 +308,9 @@ export type Database = {
           created_at?: string | null
           customer_id?: string | null
           discount_amount?: number | null
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           notes?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]

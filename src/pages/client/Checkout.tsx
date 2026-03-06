@@ -102,7 +102,7 @@ const Checkout = () => {
     const { data: addrData, error: addrErr } = await supabase.from("addresses").insert({ ...address, user_id: user?.id || null }).select("id").single();
     if (addrErr) { toast({ title: t("common.error"), description: addrErr.message, variant: "destructive" }); setSubmitting(false); return; }
 
-    const { data: orderData, error: orderErr } = await supabase.from("orders").insert({
+    const orderInsert: any = {
       customer_id: user?.id || null,
       address_id: addrData.id,
       payment_method: paymentMethod as any,
@@ -111,7 +111,13 @@ const Checkout = () => {
       total,
       coupon_id: appliedCoupon?.id || null,
       notes: notes || null,
-    }).select("id").single();
+    };
+    if (!user) {
+      orderInsert.guest_name = address.full_name;
+      orderInsert.guest_phone = address.phone;
+      orderInsert.guest_email = guestEmail || null;
+    }
+    const { data: orderData, error: orderErr } = await supabase.from("orders").insert(orderInsert).select("id").single();
 
     if (orderErr) { toast({ title: t("common.error"), description: orderErr.message, variant: "destructive" }); setSubmitting(false); return; }
 
