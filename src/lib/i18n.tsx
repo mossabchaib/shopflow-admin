@@ -421,6 +421,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.nameAndPriceRequired": "Nom et prix sont obligatoires",
     "admin.orders": "Commandes",
     "admin.ordersTotal": "commandes au total",
+    "admin.guest": "Invité",
     "admin.searchOrders": "Rechercher des commandes...",
     "admin.orderId": "ID Commande",
     "admin.customer": "Client",
