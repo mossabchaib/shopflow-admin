@@ -133,7 +133,13 @@ const Orders = () => {
             <div className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div><span className="text-sm text-muted-foreground">{t("admin.orderId")}</span><p className="font-mono text-sm">{selected.id}</p></div>
-                <div><span className="text-sm text-muted-foreground">{t("admin.customer")}</span><p>{selected.profile?.name || "—"}</p></div>
+                <div>
+                  <span className="text-sm text-muted-foreground">{t("admin.customer")}</span>
+                  <p>{selected.displayName}</p>
+                  {selected.displayEmail && <p className="text-xs text-muted-foreground">{selected.displayEmail}</p>}
+                  {selected.guest_phone && <p className="text-xs text-muted-foreground">{selected.guest_phone}</p>}
+                  {!selected.customer_id && <span className="text-xs px-2 py-0.5 rounded bg-warning/10 text-warning">{t("admin.guest")}</span>}
+                </div>
                 <div><span className="text-sm text-muted-foreground">{t("admin.payment")}</span><p>{selected.payment_method.replace("_", " ")}</p></div>
                 <div><span className="text-sm text-muted-foreground">{t("admin.date")}</span><p>{new Date(selected.created_at).toLocaleString()}</p></div>
               </div>
