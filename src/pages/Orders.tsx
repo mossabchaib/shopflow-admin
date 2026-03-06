@@ -108,7 +108,10 @@ const Orders = () => {
             {filtered.map((order) => (
               <tr key={order.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                 <td className="p-4 text-sm font-medium text-primary font-mono">{order.id.slice(0, 8)}...</td>
-                <td className="p-4 text-sm text-foreground">{order.profile?.name || "—"}</td>
+                <td className="p-4 text-sm text-foreground">
+                  <div>{order.displayName}</div>
+                  {!order.customer_id && <span className="text-xs text-muted-foreground">({t("admin.guest")})</span>}
+                </td>
                 <td className="p-4 text-sm font-medium text-foreground">${Number(order.total).toFixed(2)}</td>
                 <td className="p-4 text-sm text-muted-foreground">{order.payment_method.replace("_", " ")}</td>
                 <td className="p-4"><span className={`status-badge ${statusColors[order.status] || ""}`}>{order.status}</span></td>
