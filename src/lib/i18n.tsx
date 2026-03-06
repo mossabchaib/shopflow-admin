@@ -236,6 +236,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.topSellingProducts": "Top Selling Products",
     "admin.sales": "sales",
     "admin.noSalesData": "No sales data yet",
+    "admin.revenueOverTime": "Revenue (Last 7 Days)",
+    "admin.ordersByStatus": "Orders by Status",
 
     // Discounts page
     "admin.discounts": "Discounts & Coupons",
