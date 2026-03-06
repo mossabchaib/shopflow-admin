@@ -236,6 +236,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.topSellingProducts": "Top Selling Products",
     "admin.sales": "sales",
     "admin.noSalesData": "No sales data yet",
+    "admin.revenueOverTime": "Revenue (Last 7 Days)",
+    "admin.ordersByStatus": "Orders by Status",
 
     // Discounts page
     "admin.discounts": "Discounts & Coupons",
@@ -481,6 +483,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.topSellingProducts": "Produits les Plus Vendus",
     "admin.sales": "ventes",
     "admin.noSalesData": "Aucune donnée de vente",
+    "admin.revenueOverTime": "Revenus (7 derniers jours)",
+    "admin.ordersByStatus": "Commandes par Statut",
     "admin.discounts": "Réductions & Coupons",
     "admin.coupons": "coupons",
     "admin.addCoupon": "Ajouter un Coupon",
@@ -722,6 +726,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.topSellingProducts": "المنتجات الأكثر مبيعاً",
     "admin.sales": "مبيعات",
     "admin.noSalesData": "لا توجد بيانات مبيعات بعد",
+    "admin.revenueOverTime": "الإيرادات (آخر 7 أيام)",
+    "admin.ordersByStatus": "الطلبات حسب الحالة",
     "admin.discounts": "التخفيضات والقسائم",
     "admin.coupons": "قسائم",
     "admin.addCoupon": "إضافة قسيمة",

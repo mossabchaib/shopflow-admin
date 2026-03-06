@@ -74,10 +74,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const notifCount = notifications.length;
 
+  const isRtl = lang === "ar";
+
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
+      <div className={`min-h-screen flex w-full ${isRtl ? "flex-row-reverse" : ""}`}>
+        <AppSidebar side={isRtl ? "right" : "left"} />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-16 flex items-center justify-between border-b bg-card px-4 lg:px-6 sticky top-0 z-10">
             <div className="flex items-center gap-2">

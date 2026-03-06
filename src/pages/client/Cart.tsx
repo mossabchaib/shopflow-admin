@@ -135,7 +135,7 @@ const Cart = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <Link to={`/product/${prod.id}`} className="font-medium text-foreground hover:text-primary truncate block">{prod.name}</Link>
-                      <p className="text-sm font-bold text-primary mt-1">${getGuestItemPrice(gItem).toFixed(2)}</p>
+                      <p className="text-sm font-bold text-success mt-1">${getGuestItemPrice(gItem).toFixed(2)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex items-center border rounded-lg">
@@ -160,7 +160,7 @@ const Cart = () => {
                     <Link to={`/product/${item.products?.id}`} className="font-medium text-foreground hover:text-primary truncate block">{item.products?.name}</Link>
                     {item.product_sizes && <p className="text-xs text-muted-foreground">{t("product.size")}: {item.product_sizes.size_label}</p>}
                     {(item as any).product_colors && <p className="text-xs text-muted-foreground flex items-center gap-1">Color: <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: (item as any).product_colors.color_hex }} /> {(item as any).product_colors.color_name}</p>}
-                    <p className="text-sm font-bold text-primary mt-1">${getDbItemPrice(item).toFixed(2)}</p>
+                    <p className="text-sm font-bold text-success mt-1">${getDbItemPrice(item).toFixed(2)}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center border rounded-lg">
@@ -186,14 +186,7 @@ const Cart = () => {
             <div className="flex justify-between font-semibold text-lg border-t pt-4 mb-6">
               <span>{t("cart.total")}</span><span className="text-primary">${total.toFixed(2)}</span>
             </div>
-            <Button className="w-full" onClick={() => {
-              if (!user) {
-                toast({ title: t("checkout.signinRequired"), variant: "destructive" });
-                navigate("/auth");
-                return;
-              }
-              navigate("/checkout");
-            }}>
+            <Button className="w-full" onClick={() => navigate("/checkout")}>
               {t("cart.checkout")}
             </Button>
           </div>

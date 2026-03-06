@@ -141,8 +141,8 @@ const ProductDetail = () => {
           </div>
 
           <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-bold text-foreground">${(Number(price) + Number(sizeExtra)).toFixed(2)}</span>
-            {product.discount_price && <span className="text-lg text-muted-foreground line-through">${Number(product.price).toFixed(2)}</span>}
+            <span className="text-3xl font-bold text-success">${(Number(price) + Number(sizeExtra)).toFixed(2)}</span>
+            {product.discount_price && <span className="text-lg text-destructive line-through">${Number(product.price).toFixed(2)}</span>}
           </div>
 
           {product.description && <p className="text-muted-foreground leading-relaxed">{product.description}</p>}
