@@ -135,7 +135,7 @@ const Cart = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <Link to={`/product/${prod.id}`} className="font-medium text-foreground hover:text-primary truncate block">{prod.name}</Link>
-                      <p className="text-sm font-bold text-primary mt-1">${getGuestItemPrice(gItem).toFixed(2)}</p>
+                      <p className="text-sm font-bold text-success mt-1">${getGuestItemPrice(gItem).toFixed(2)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex items-center border rounded-lg">
