@@ -34,7 +34,7 @@ const menuItems = [
   { titleKey: "sidebar.discounts", url: "/admin/discounts", icon: Ticket },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ side = "left" }: { side?: "left" | "right" }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
