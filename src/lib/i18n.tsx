@@ -483,6 +483,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.topSellingProducts": "Produits les Plus Vendus",
     "admin.sales": "ventes",
     "admin.noSalesData": "Aucune donnée de vente",
+    "admin.revenueOverTime": "Revenus (7 derniers jours)",
+    "admin.ordersByStatus": "Commandes par Statut",
     "admin.discounts": "Réductions & Coupons",
     "admin.coupons": "coupons",
     "admin.addCoupon": "Ajouter un Coupon",
