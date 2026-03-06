@@ -42,7 +42,12 @@ const Orders = () => {
       (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p; });
     }
 
-    setOrders((data || []).map((o: any) => ({ ...o, profile: profilesMap[o.customer_id] || null })));
+    setOrders((data || []).map((o: any) => ({
+      ...o,
+      profile: profilesMap[o.customer_id] || null,
+      displayName: profilesMap[o.customer_id]?.name || o.guest_name || t("admin.guest"),
+      displayEmail: profilesMap[o.customer_id]?.email || o.guest_email || "",
+    })));
     setLoading(false);
   };
 
