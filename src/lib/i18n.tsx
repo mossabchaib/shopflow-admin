@@ -665,6 +665,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.nameAndPriceRequired": "الاسم والسعر مطلوبان",
     "admin.orders": "الطلبات",
     "admin.ordersTotal": "طلب إجمالي",
+    "admin.guest": "زائر",
     "admin.searchOrders": "البحث عن طلبات...",
     "admin.orderId": "رقم الطلب",
     "admin.customer": "العميل",
