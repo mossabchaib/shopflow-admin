@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/lib/i18n";
+import { getGuestCartItems, clearGuestCart } from "@/hooks/useGuestCart";
 
 const Checkout = () => {
   const { user } = useAuth();
@@ -26,21 +27,37 @@ const Checkout = () => {
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("credit_card");
+  const [paymentMethod, setPaymentMethod] = useState("cash_on_delivery");
   const [address, setAddress] = useState({ full_name: "", phone: "", street: "", city: "", state: "", postal_code: "", country: "" });
   const [notes, setNotes] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
 
   useEffect(() => {
-    if (!user) { navigate("/auth"); return; }
-    const fetch = async () => {
-      const { data } = await supabase
-        .from("cart_items")
-        .select("*, products(id, name, price, discount_price), product_sizes(id, size_label, extra_price, stock), product_colors(id, color_name, color_hex, stock)")
-        .eq("user_id", user.id);
-      setCartItems(data || []);
+    const fetchCart = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from("cart_items")
+          .select("*, products(id, name, price, discount_price), product_sizes(id, size_label, extra_price, stock), product_colors(id, color_name, color_hex, stock)")
+          .eq("user_id", user.id);
+        setCartItems(data || []);
+      } else {
+        // Guest: fetch product details for guest cart
+        const guestItems = getGuestCartItems();
+        if (guestItems.length === 0) { setCartItems([]); setLoading(false); return; }
+        const ids = guestItems.map((i: any) => i.product_id);
+        const { data: products } = await supabase
+          .from("products")
+          .select("id, name, price, discount_price")
+          .in("id", ids);
+        const mapped = guestItems.map((gi: any) => {
+          const prod = (products || []).find((p: any) => p.id === gi.product_id);
+          return { id: `guest-${gi.product_id}-${gi.size_id}-${gi.color_id}`, products: prod, quantity: gi.quantity, product_sizes: null, product_colors: null };
+        });
+        setCartItems(mapped);
+      }
       setLoading(false);
     };
-    fetch();
+    fetchCart();
   }, [user]);
 
   const getItemPrice = (item: any) => {
@@ -75,13 +92,18 @@ const Checkout = () => {
       toast({ title: t("checkout.shippingAddress"), description: "Please fill in required fields", variant: "destructive" });
       return;
     }
+    if (!address.phone) {
+      toast({ title: t("checkout.phone"), description: "Please enter your phone number", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
 
-    const { data: addrData, error: addrErr } = await supabase.from("addresses").insert({ ...address, user_id: user!.id }).select("id").single();
+    // Save address (with user_id if logged in, null if guest)
+    const { data: addrData, error: addrErr } = await supabase.from("addresses").insert({ ...address, user_id: user?.id || null }).select("id").single();
     if (addrErr) { toast({ title: t("common.error"), description: addrErr.message, variant: "destructive" }); setSubmitting(false); return; }
 
     const { data: orderData, error: orderErr } = await supabase.from("orders").insert({
-      customer_id: user!.id,
+      customer_id: user?.id || null,
       address_id: addrData.id,
       payment_method: paymentMethod as any,
       subtotal,
@@ -93,28 +115,40 @@ const Checkout = () => {
 
     if (orderErr) { toast({ title: t("common.error"), description: orderErr.message, variant: "destructive" }); setSubmitting(false); return; }
 
-    for (const item of cartItems) {
-      await supabase.from("order_items").insert({
-        order_id: orderData.id,
-        product_id: item.products?.id,
-        size_id: item.product_sizes?.id || null,
-        color_id: (item as any).product_colors?.id || null,
-        quantity: item.quantity,
-        unit_price: Number(item.products?.discount_price || item.products?.price || 0) + Number(item.product_sizes?.extra_price || 0),
-        total_price: getItemPrice(item),
-      });
-      if (item.product_sizes?.id) {
-        const newStock = Math.max(0, (item.product_sizes.stock || 0) - item.quantity);
-        await supabase.from("product_sizes").update({ stock: newStock }).eq("id", item.product_sizes.id);
+    if (user) {
+      // DB cart items
+      for (const item of cartItems) {
+        await supabase.from("order_items").insert({
+          order_id: orderData.id,
+          product_id: item.products?.id,
+          size_id: item.product_sizes?.id || null,
+          color_id: item.product_colors?.id || null,
+          quantity: item.quantity,
+          unit_price: Number(item.products?.discount_price || item.products?.price || 0) + Number(item.product_sizes?.extra_price || 0),
+          total_price: getItemPrice(item),
+        });
       }
+      await supabase.from("cart_items").delete().eq("user_id", user.id);
+      queryClient.invalidateQueries({ queryKey: ["cart-count"] });
+    } else {
+      // Guest cart items
+      const guestItems = getGuestCartItems();
+      for (const item of cartItems) {
+        await supabase.from("order_items").insert({
+          order_id: orderData.id,
+          product_id: item.products?.id,
+          quantity: item.quantity,
+          unit_price: Number(item.products?.discount_price || item.products?.price || 0),
+          total_price: getItemPrice(item),
+        });
+      }
+      clearGuestCart();
     }
 
     if (appliedCoupon) {
       await supabase.from("coupons").update({ usage_count: (appliedCoupon.usage_count || 0) + 1 }).eq("id", appliedCoupon.id);
     }
 
-    await supabase.from("cart_items").delete().eq("user_id", user!.id);
-    queryClient.invalidateQueries({ queryKey: ["cart-count"] });
     setSuccess(true);
     setSubmitting(false);
   };
@@ -140,7 +174,10 @@ const Checkout = () => {
             <h2 className="font-semibold text-foreground mb-4">{t("checkout.shippingAddress")}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><Label>{t("checkout.fullName")} *</Label><Input value={address.full_name} onChange={e => setAddress({ ...address, full_name: e.target.value })} className="mt-1" /></div>
-              <div><Label>{t("checkout.phone")}</Label><Input value={address.phone} onChange={e => setAddress({ ...address, phone: e.target.value })} className="mt-1" /></div>
+              <div><Label>{t("checkout.phone")} *</Label><Input value={address.phone} onChange={e => setAddress({ ...address, phone: e.target.value })} className="mt-1" /></div>
+              {!user && (
+                <div className="sm:col-span-2"><Label>Email</Label><Input type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} className="mt-1" placeholder="optional" /></div>
+              )}
               <div className="sm:col-span-2"><Label>{t("checkout.street")} *</Label><Input value={address.street} onChange={e => setAddress({ ...address, street: e.target.value })} className="mt-1" /></div>
               <div><Label>{t("checkout.city")} *</Label><Input value={address.city} onChange={e => setAddress({ ...address, city: e.target.value })} className="mt-1" /></div>
               <div><Label>{t("checkout.state")}</Label><Input value={address.state} onChange={e => setAddress({ ...address, state: e.target.value })} className="mt-1" /></div>
@@ -173,7 +210,7 @@ const Checkout = () => {
             {cartItems.map(item => (
               <div key={item.id} className="flex justify-between text-sm">
                 <span className="text-muted-foreground truncate max-w-[60%]">{item.products?.name} × {item.quantity}</span>
-                <span className="font-medium">${getItemPrice(item).toFixed(2)}</span>
+                <span className="font-medium text-success">${getItemPrice(item).toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -192,11 +229,11 @@ const Checkout = () => {
           )}
 
           <div className="space-y-2 text-sm border-t pt-4">
-            <div className="flex justify-between"><span className="text-muted-foreground">{t("cart.subtotal")}</span><span>${subtotal.toFixed(2)}</span></div>
-            {discountAmount > 0 && <div className="flex justify-between text-success"><span>{t("checkout.discount")}</span><span>-${discountAmount.toFixed(2)}</span></div>}
+            <div className="flex justify-between"><span className="text-muted-foreground">{t("cart.subtotal")}</span><span className="text-success">${subtotal.toFixed(2)}</span></div>
+            {discountAmount > 0 && <div className="flex justify-between text-destructive"><span>{t("checkout.discount")}</span><span>-${discountAmount.toFixed(2)}</span></div>}
           </div>
           <div className="flex justify-between font-semibold text-lg border-t pt-4 mt-4 mb-6">
-            <span>{t("cart.total")}</span><span className="text-primary">${total.toFixed(2)}</span>
+            <span>{t("cart.total")}</span><span className="text-success">${total.toFixed(2)}</span>
           </div>
           <Button className="w-full" onClick={placeOrder} disabled={submitting || cartItems.length === 0}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
