@@ -31,7 +31,7 @@ const Orders = () => {
   const fetchOrders = async () => {
     const { data, error } = await supabase
       .from("orders")
-      .select("*, order_items(*, products(name), product_sizes(size_label))")
+      .select("*, order_items(*, products(name), product_sizes(size_label)), addresses(*)")
       .order("created_at", { ascending: false });
     if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); setLoading(false); return; }
 
