@@ -114,9 +114,9 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
           <p className="text-xs text-muted-foreground">{product.categories?.name || ""}</p>
           <h3 className="text-sm font-medium text-foreground truncate leading-tight">{product.name}</h3>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-foreground">${Number(price).toFixed(2)}</span>
+            <span className="text-sm font-bold text-success">${Number(price).toFixed(2)}</span>
             {product.discount_price && (
-              <span className="text-xs text-muted-foreground line-through">${Number(product.price).toFixed(2)}</span>
+              <span className="text-xs text-destructive line-through">${Number(product.price).toFixed(2)}</span>
             )}
           </div>
         </div>

@@ -41,7 +41,7 @@ export function AppSidebar({ side = "left" }: { side?: "left" | "right" }) {
   const { t } = useI18n();
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0" side="left">
+    <Sidebar collapsible="icon" className={side === "right" ? "border-l-0" : "border-r-0"} side={side}>
       <div className="h-16 flex items-center gap-3 px-4 border-b border-sidebar-border">
         <div className="h-9 w-9 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
           <Store className="h-5 w-5 text-sidebar-primary-foreground" />

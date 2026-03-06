@@ -186,14 +186,7 @@ const Cart = () => {
             <div className="flex justify-between font-semibold text-lg border-t pt-4 mb-6">
               <span>{t("cart.total")}</span><span className="text-primary">${total.toFixed(2)}</span>
             </div>
-            <Button className="w-full" onClick={() => {
-              if (!user) {
-                toast({ title: t("checkout.signinRequired"), variant: "destructive" });
-                navigate("/auth");
-                return;
-              }
-              navigate("/checkout");
-            }}>
+            <Button className="w-full" onClick={() => navigate("/checkout")}>
               {t("cart.checkout")}
             </Button>
           </div>
