@@ -423,6 +423,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.orders": "Commandes",
     "admin.ordersTotal": "commandes au total",
     "admin.guest": "Invité",
+    "admin.ordersCount": "Commandes",
     "admin.searchOrders": "Rechercher des commandes...",
     "admin.orderId": "ID Commande",
     "admin.customer": "Client",
