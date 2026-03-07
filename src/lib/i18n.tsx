@@ -783,7 +783,8 @@ const I18nContext = createContext<I18nContextType>({
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
     const saved = localStorage.getItem("app-lang");
-    return (saved === "fr" || saved === "ar") ? saved : "en";
+    if (saved === "en" || saved === "fr" || saved === "ar") return saved;
+    return "ar"; // Default to Arabic for first-time visitors
   });
 
   const setLang = (l: Lang) => {
