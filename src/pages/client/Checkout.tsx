@@ -32,6 +32,39 @@ const Checkout = () => {
   const [notes, setNotes] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
 
+  // Pre-fill form for logged-in users with existing profile data
+  useEffect(() => {
+    const prefill = async () => {
+      if (!user) return;
+      // Get profile info
+      const { data: profile } = await supabase.from("profiles").select("name, email, phone").eq("user_id", user.id).maybeSingle();
+      // Get last used address
+      const { data: lastAddr } = await supabase.from("addresses").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+
+      if (profile) {
+        setAddress(prev => ({
+          ...prev,
+          full_name: profile.name || prev.full_name,
+          phone: profile.phone || prev.phone,
+        }));
+        setGuestEmail(profile.email || "");
+      }
+      if (lastAddr) {
+        setAddress(prev => ({
+          ...prev,
+          full_name: lastAddr.full_name || prev.full_name,
+          phone: lastAddr.phone || prev.phone,
+          street: lastAddr.street || "",
+          city: lastAddr.city || "",
+          state: lastAddr.state || "",
+          postal_code: lastAddr.postal_code || "",
+          country: lastAddr.country || "",
+        }));
+      }
+    };
+    prefill();
+  }, [user]);
+
   useEffect(() => {
     const fetchCart = async () => {
       if (user) {
@@ -41,14 +74,10 @@ const Checkout = () => {
           .eq("user_id", user.id);
         setCartItems(data || []);
       } else {
-        // Guest: fetch product details for guest cart
         const guestItems = getGuestCartItems();
         if (guestItems.length === 0) { setCartItems([]); setLoading(false); return; }
         const ids = guestItems.map((i: any) => i.product_id);
-        const { data: products } = await supabase
-          .from("products")
-          .select("id, name, price, discount_price")
-          .in("id", ids);
+        const { data: products } = await supabase.from("products").select("id, name, price, discount_price").in("id", ids);
         const mapped = guestItems.map((gi: any) => {
           const prod = (products || []).find((p: any) => p.id === gi.product_id);
           return { id: `guest-${gi.product_id}-${gi.size_id}-${gi.color_id}`, products: prod, quantity: gi.quantity, product_sizes: null, product_colors: null };
@@ -98,31 +127,73 @@ const Checkout = () => {
     }
     setSubmitting(true);
 
-    // Save address (with user_id if logged in, null if guest)
-    const { data: addrData, error: addrErr } = await supabase.from("addresses").insert({ ...address, user_id: user?.id || null }).select("id").single();
-    if (addrErr) { toast({ title: t("common.error"), description: addrErr.message, variant: "destructive" }); setSubmitting(false); return; }
+    try {
+      // --- Create or update customer profile ---
+      let customerId: string | null = null;
 
-    const orderInsert: any = {
-      customer_id: user?.id || null,
-      address_id: addrData.id,
-      payment_method: paymentMethod as any,
-      subtotal,
-      discount_amount: discountAmount,
-      total,
-      coupon_id: appliedCoupon?.id || null,
-      notes: notes || null,
-    };
-    if (!user) {
-      orderInsert.guest_name = address.full_name;
-      orderInsert.guest_phone = address.phone;
-      orderInsert.guest_email = guestEmail || null;
-    }
-    const { data: orderData, error: orderErr } = await supabase.from("orders").insert(orderInsert).select("id").single();
+      if (user) {
+        // Logged-in user: update their profile with latest info
+        customerId = user.id;
+        await supabase.from("profiles").update({
+          name: address.full_name,
+          phone: address.phone,
+        }).eq("user_id", user.id);
+      } else {
+        // Guest: check if a profile with this email exists, otherwise create one
+        const email = guestEmail?.trim() || `guest-${Date.now()}@guest.local`;
+        let existingProfile: any = null;
 
-    if (orderErr) { toast({ title: t("common.error"), description: orderErr.message, variant: "destructive" }); setSubmitting(false); return; }
+        if (guestEmail?.trim()) {
+          const { data } = await supabase.from("profiles").select("id, user_id").eq("email", guestEmail.trim()).maybeSingle();
+          existingProfile = data;
+        }
 
-    if (user) {
-      // DB cart items
+        if (existingProfile) {
+          // Update existing guest profile
+          await supabase.from("profiles").update({
+            name: address.full_name,
+            phone: address.phone,
+          }).eq("id", existingProfile.id);
+          customerId = existingProfile.user_id || null;
+        } else {
+          // Create new guest profile (user_id will be a generated UUID just for linking)
+          const guestUserId = crypto.randomUUID();
+          const { error: profileErr } = await supabase.from("profiles").insert({
+            user_id: guestUserId,
+            name: address.full_name,
+            email: email,
+            phone: address.phone,
+          });
+          if (profileErr) {
+            console.error("Profile creation error:", profileErr);
+          }
+        }
+      }
+
+      // Save address
+      const { data: addrData, error: addrErr } = await supabase.from("addresses").insert({ ...address, user_id: user?.id || null }).select("id").single();
+      if (addrErr) { toast({ title: t("common.error"), description: addrErr.message, variant: "destructive" }); setSubmitting(false); return; }
+
+      // Create order
+      const orderInsert: any = {
+        customer_id: user?.id || null,
+        address_id: addrData.id,
+        payment_method: paymentMethod as any,
+        subtotal,
+        discount_amount: discountAmount,
+        total,
+        coupon_id: appliedCoupon?.id || null,
+        notes: notes || null,
+      };
+      if (!user) {
+        orderInsert.guest_name = address.full_name;
+        orderInsert.guest_phone = address.phone;
+        orderInsert.guest_email = guestEmail || null;
+      }
+      const { data: orderData, error: orderErr } = await supabase.from("orders").insert(orderInsert).select("id").single();
+      if (orderErr) { toast({ title: t("common.error"), description: orderErr.message, variant: "destructive" }); setSubmitting(false); return; }
+
+      // Create order items
       for (const item of cartItems) {
         await supabase.from("order_items").insert({
           order_id: orderData.id,
@@ -134,28 +205,23 @@ const Checkout = () => {
           total_price: getItemPrice(item),
         });
       }
-      await supabase.from("cart_items").delete().eq("user_id", user.id);
-      queryClient.invalidateQueries({ queryKey: ["cart-count"] });
-    } else {
-      // Guest cart items
-      const guestItems = getGuestCartItems();
-      for (const item of cartItems) {
-        await supabase.from("order_items").insert({
-          order_id: orderData.id,
-          product_id: item.products?.id,
-          quantity: item.quantity,
-          unit_price: Number(item.products?.discount_price || item.products?.price || 0),
-          total_price: getItemPrice(item),
-        });
+
+      // Clear cart
+      if (user) {
+        await supabase.from("cart_items").delete().eq("user_id", user.id);
+        queryClient.invalidateQueries({ queryKey: ["cart-count"] });
+      } else {
+        clearGuestCart();
       }
-      clearGuestCart();
-    }
 
-    if (appliedCoupon) {
-      await supabase.from("coupons").update({ usage_count: (appliedCoupon.usage_count || 0) + 1 }).eq("id", appliedCoupon.id);
-    }
+      if (appliedCoupon) {
+        await supabase.from("coupons").update({ usage_count: (appliedCoupon.usage_count || 0) + 1 }).eq("id", appliedCoupon.id);
+      }
 
-    setSuccess(true);
+      setSuccess(true);
+    } catch (err: any) {
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    }
     setSubmitting(false);
   };
 
@@ -182,7 +248,7 @@ const Checkout = () => {
               <div><Label>{t("checkout.fullName")} *</Label><Input value={address.full_name} onChange={e => setAddress({ ...address, full_name: e.target.value })} className="mt-1" /></div>
               <div><Label>{t("checkout.phone")} *</Label><Input value={address.phone} onChange={e => setAddress({ ...address, phone: e.target.value })} className="mt-1" /></div>
               {!user && (
-                <div className="sm:col-span-2"><Label>Email</Label><Input type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} className="mt-1" placeholder="optional" /></div>
+                <div className="sm:col-span-2"><Label>Email</Label><Input type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} className="mt-1" /></div>
               )}
               <div className="sm:col-span-2"><Label>{t("checkout.street")} *</Label><Input value={address.street} onChange={e => setAddress({ ...address, street: e.target.value })} className="mt-1" /></div>
               <div><Label>{t("checkout.city")} *</Label><Input value={address.city} onChange={e => setAddress({ ...address, city: e.target.value })} className="mt-1" /></div>
