@@ -8,7 +8,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 
 interface Customer {
-  id: string; user_id: string; name: string; email: string; phone: string | null; avatar: string | null; created_at: string;
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  avatar: string | null;
+  created_at: string;
+  orderCount: number;
 }
 
 const Customers = () => {
@@ -21,9 +28,35 @@ const Customers = () => {
   const { t } = useI18n();
 
   const fetchCustomers = async () => {
-    const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-    if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); return; }
-    setCustomers(data || []);
+    // Fetch all profiles
+    const { data: profiles, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); setLoading(false); return; }
+
+    // Fetch order counts per customer
+    const { data: orders } = await supabase.from("orders").select("customer_id, guest_email");
+
+    // Count orders: for registered users by customer_id, for guests by matching email in profiles
+    const orderCountMap: Record<string, number> = {};
+    (orders || []).forEach((o: any) => {
+      if (o.customer_id) {
+        orderCountMap[o.customer_id] = (orderCountMap[o.customer_id] || 0) + 1;
+      }
+    });
+
+    // Also count guest orders by email match
+    const guestOrdersByEmail: Record<string, number> = {};
+    (orders || []).forEach((o: any) => {
+      if (!o.customer_id && o.guest_email) {
+        guestOrdersByEmail[o.guest_email] = (guestOrdersByEmail[o.guest_email] || 0) + 1;
+      }
+    });
+
+    const customersWithCounts = (profiles || []).map((p: any) => ({
+      ...p,
+      orderCount: orderCountMap[p.user_id] || guestOrdersByEmail[p.email] || 0,
+    }));
+
+    setCustomers(customersWithCounts);
     setLoading(false);
   };
 
@@ -54,6 +87,7 @@ const Customers = () => {
               <th className="table-header text-start p-4">{t("admin.customer")}</th>
               <th className="table-header text-start p-4">{t("admin.email")}</th>
               <th className="table-header text-start p-4">{t("admin.phone")}</th>
+              <th className="table-header text-start p-4">{t("admin.ordersCount")}</th>
               <th className="table-header text-start p-4">{t("admin.registered")}</th>
               <th className="table-header text-start p-4">{t("admin.action")}</th>
             </tr>
@@ -71,13 +105,14 @@ const Customers = () => {
                 </td>
                 <td className="p-4 text-sm text-muted-foreground">{c.email}</td>
                 <td className="p-4 text-sm text-muted-foreground">{c.phone || "—"}</td>
+                <td className="p-4 text-sm font-medium text-foreground">{c.orderCount}</td>
                 <td className="p-4 text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</td>
                 <td className="p-4">
                   <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { setSelected(c); setViewOpen(true); }}><Eye className="h-4 w-4 me-1" />{t("admin.view")}</Button>
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">{t("admin.noCustomersFound")}</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">{t("admin.noCustomersFound")}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -98,6 +133,7 @@ const Customers = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><span className="text-sm text-muted-foreground">{t("admin.phone")}</span><p>{selected.phone || "—"}</p></div>
+                <div><span className="text-sm text-muted-foreground">{t("admin.ordersCount")}</span><p>{selected.orderCount}</p></div>
                 <div><span className="text-sm text-muted-foreground">{t("admin.registered")}</span><p>{new Date(selected.created_at).toLocaleDateString()}</p></div>
               </div>
             </div>

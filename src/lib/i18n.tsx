@@ -166,6 +166,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.orders": "Orders",
     "admin.ordersTotal": "orders total",
     "admin.guest": "Guest",
+    "admin.ordersCount": "Orders",
     "admin.searchOrders": "Search orders...",
     "admin.orderId": "Order ID",
     "admin.customer": "Customer",
@@ -422,6 +423,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.orders": "Commandes",
     "admin.ordersTotal": "commandes au total",
     "admin.guest": "Invité",
+    "admin.ordersCount": "Commandes",
     "admin.searchOrders": "Rechercher des commandes...",
     "admin.orderId": "ID Commande",
     "admin.customer": "Client",
@@ -666,6 +668,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.orders": "الطلبات",
     "admin.ordersTotal": "طلب إجمالي",
     "admin.guest": "زائر",
+    "admin.ordersCount": "عدد الطلبات",
     "admin.searchOrders": "البحث عن طلبات...",
     "admin.orderId": "رقم الطلب",
     "admin.customer": "العميل",
@@ -783,7 +786,8 @@ const I18nContext = createContext<I18nContextType>({
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
     const saved = localStorage.getItem("app-lang");
-    return (saved === "fr" || saved === "ar") ? saved : "en";
+    if (saved === "en" || saved === "fr" || saved === "ar") return saved;
+    return "ar"; // Default to Arabic for first-time visitors
   });
 
   const setLang = (l: Lang) => {
