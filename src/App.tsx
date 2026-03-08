@@ -43,6 +43,9 @@ import SellerDashboard from "./pages/seller/SellerDashboard";
 import SellerCoupons from "./pages/seller/SellerCoupons";
 import RequestStore from "./pages/seller/RequestStore";
 import Reviews from "./pages/Reviews";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import SellerAnalytics from "./pages/seller/SellerAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
