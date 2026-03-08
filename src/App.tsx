@@ -8,6 +8,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "next-themes";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ClientLayout } from "@/components/layout/ClientLayout";
+import { StoreLayout } from "@/components/layout/StoreLayout";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Orders from "./pages/Orders";
@@ -26,7 +27,9 @@ import ProductDetail from "./pages/client/ProductDetail";
 import Cart from "./pages/client/Cart";
 import Favorites from "./pages/client/Favorites";
 import Checkout from "./pages/client/Checkout";
-import StorePage from "./pages/client/StorePage";
+import StoreHome from "./pages/client/StoreHome";
+import StoreShop from "./pages/client/StoreShop";
+import StoreProductDetail from "./pages/client/StoreProductDetail";
 import StoreSettings from "./pages/seller/StoreSettings";
 import RequestStore from "./pages/seller/RequestStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -131,10 +134,14 @@ const App = () => (
                 <Route path="/admin/suppliers" element={<AdminRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminRoute>} />
                 <Route path="/admin/stores" element={<AdminRoute><DashboardLayout><Stores /></DashboardLayout></AdminRoute>} />
 
-                {/* Client routes */}
+                {/* Store sub-site routes — full website per store */}
+                <Route path="/store/:slug" element={<StoreLayout><StoreHome /></StoreLayout>} />
+                <Route path="/store/:slug/shop" element={<StoreLayout><StoreShop /></StoreLayout>} />
+                <Route path="/store/:slug/product/:productId" element={<StoreLayout><StoreProductDetail /></StoreLayout>} />
+
+                {/* Main marketplace client routes */}
                 <Route path="/" element={<ClientLayout><Home /></ClientLayout>} />
                 <Route path="/shop" element={<ClientLayout><Shop /></ClientLayout>} />
-                <Route path="/store/:slug" element={<ClientLayout><StorePage /></ClientLayout>} />
                 <Route path="/product/:id" element={<ClientLayout><ProductDetail /></ClientLayout>} />
                 <Route path="/cart" element={<ClientLayout><Cart /></ClientLayout>} />
                 <Route path="/checkout" element={<ClientLayout><Checkout /></ClientLayout>} />
