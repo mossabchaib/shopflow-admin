@@ -111,6 +111,8 @@ export function ClientNavbar() {
               </Button>
             )}
 
+            {user && <NotificationBell />}
+
             {user && (
               <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/favorites")}>
                 <Heart className={`h-4 w-4 ${isActive("/favorites") ? "fill-primary text-primary" : ""}`} />
