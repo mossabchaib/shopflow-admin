@@ -277,6 +277,78 @@ const ProductDetail = () => {
         </div>
       </motion.div>
 
+      {/* Reviews Section */}
+      <div className="mt-16">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-foreground">{t("reviews.title")}</h2>
+          {reviews.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Star key={s} className={`h-4 w-4 ${s <= Math.round(avgRating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                ))}
+              </div>
+              <span className="text-sm font-medium text-foreground">{avgRating.toFixed(1)}</span>
+              <span className="text-sm text-muted-foreground">({reviews.length})</span>
+            </div>
+          )}
+        </div>
+
+        {/* Review Form */}
+        {user && (
+          <div className="mb-8 p-4 rounded-xl border border-border bg-muted/20">
+            <p className="text-sm font-medium text-foreground mb-3">{t("reviews.writeReview")}</p>
+            <div className="flex gap-1 mb-3">
+              {[1, 2, 3, 4, 5].map(s => (
+                <button key={s} onClick={() => setReviewRating(s)} className="transition-transform hover:scale-110">
+                  <Star className={`h-6 w-6 ${s <= reviewRating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                </button>
+              ))}
+            </div>
+            <Textarea
+              value={reviewComment}
+              onChange={e => setReviewComment(e.target.value)}
+              placeholder={t("reviews.placeholder")}
+              className="mb-3 resize-none"
+              rows={3}
+            />
+            <Button onClick={submitReview} disabled={submittingReview} size="sm">
+              {submittingReview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              {t("reviews.submit")}
+            </Button>
+          </div>
+        )}
+
+        {/* Review List */}
+        {reviews.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">{t("reviews.noReviews")}</p>
+        ) : (
+          <div className="space-y-4">
+            {reviews.map(r => (
+              <div key={r.id} className="p-4 rounded-xl border border-border/50 bg-card">
+                <div className="flex items-center gap-3 mb-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                      {(r.profiles?.name || r.profiles?.email || "?")?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">{r.profiles?.name || r.profiles?.email || "Customer"}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <Star key={s} className={`h-3.5 w-3.5 ${s <= (r.rating || 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                    ))}
+                  </div>
+                </div>
+                {r.comment && <p className="text-sm text-muted-foreground leading-relaxed">{r.comment}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Related Products */}
       {related.length > 0 && (
         <div className="mt-16">
