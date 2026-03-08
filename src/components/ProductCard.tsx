@@ -86,14 +86,12 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
           />
           {/* Overlay actions */}
           <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors duration-300" />
-          <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+           <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
             <Button
               size="sm"
               className="flex-1 h-9 text-xs font-medium"
-              onClick={handleAddToCart}
             >
-              <ShoppingCart className="h-3.5 w-3.5 me-1.5" />
-              {t("product.addToCart")}
+              {t("product.viewProduct") || "View Product"}
             </Button>
           </div>
           {/* Fav button */}
