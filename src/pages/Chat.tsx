@@ -249,27 +249,48 @@ export default function Chat() {
     if (!file || !activeConv || !user) return;
     if (file.size > 20 * 1024 * 1024) { toast.error("File too large (max 20MB)"); return; }
 
+  // File selected → show preview
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { toast.error("File too large (max 20MB)"); return; }
+    setPreviewFile(file);
+    if (file.type.startsWith("image/")) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPreviewUrl(null);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function cancelPreview() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewFile(null);
+    setPreviewUrl(null);
+  }
+
+  async function sendFileFromPreview() {
+    if (!previewFile || !activeConv || !user) return;
     setUploadingFile(true);
-    const ext = file.name.split(".").pop();
+    const ext = previewFile.name.split(".").pop();
     const path = `${activeConv.id}/${Date.now()}.${ext}`;
 
-    const { error: upErr } = await supabase.storage.from("chat-files").upload(path, file);
+    const { error: upErr } = await supabase.storage.from("chat-files").upload(path, previewFile);
     if (upErr) { toast.error("Upload failed"); setUploadingFile(false); return; }
 
     const { data: urlData } = supabase.storage.from("chat-files").getPublicUrl(path);
 
     let msgType = "file";
-    if (file.type.startsWith("image/")) msgType = "image";
-    else if (file.type.startsWith("audio/")) msgType = "voice";
+    if (previewFile.type.startsWith("image/")) msgType = "image";
 
     const { error } = await supabase.from("chat_messages").insert({
       conversation_id: activeConv.id,
       sender_id: user.id,
-      content: file.name,
+      content: previewFile.name,
       message_type: msgType,
       file_url: urlData.publicUrl,
-      file_name: file.name,
-      file_type: file.type,
+      file_name: previewFile.name,
+      file_type: previewFile.type,
     });
 
     if (error) toast.error("Failed to send file");
@@ -277,8 +298,8 @@ export default function Chat() {
       await supabase.from("chat_conversations").update({ updated_at: new Date().toISOString() }).eq("id", activeConv.id);
       fetchConversations();
     }
+    cancelPreview();
     setUploadingFile(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   // Voice recording
@@ -293,10 +314,13 @@ export default function Chat() {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        await uploadVoice(blob);
+        // Show preview instead of sending
+        setVoiceBlob(blob);
+        setVoicePreviewUrl(URL.createObjectURL(blob));
+        setVoiceDuration(recordingDuration);
       };
 
       mediaRecorder.start();
