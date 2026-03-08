@@ -107,6 +107,12 @@ export function ClientNavbar() {
             </DropdownMenu>
 
             {user && (
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/my-orders")} title={t("orders.myOrders")}>
+                <Package className={`h-4 w-4 ${isActive("/my-orders") ? "text-primary" : ""}`} />
+              </Button>
+            )}
+
+            {user && (
               <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/account")} title={t("nav.account")}>
                 <UserCircle className={`h-4 w-4 ${isActive("/account") ? "text-primary" : ""}`} />
               </Button>
