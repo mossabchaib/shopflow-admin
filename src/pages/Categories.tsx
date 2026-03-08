@@ -20,8 +20,23 @@ const Categories = () => {
   const [editing, setEditing] = useState<Category | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", image_url: "" });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { t } = useI18n();
+
+  const handleFileUpload = async (file: File) => {
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `categories/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); setUploading(false); return; }
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+    setForm(f => ({ ...f, image_url: urlData.publicUrl }));
+    setPreviewUrl(urlData.publicUrl);
+    setUploading(false);
+  };
 
   const fetchCategories = async () => {
     const { data, error } = await supabase.from("categories").select("*").order("created_at", { ascending: false });
