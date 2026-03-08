@@ -299,6 +299,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "shop.allCategories": "Toutes les Catégories",
     "shop.noProducts": "Aucun produit trouvé.",
     "product.addToCart": "Ajouter au Panier",
+    "product.viewProduct": "Voir le Produit",
     "product.size": "Taille",
     "product.color": "Couleur",
     "product.quantity": "Quantité",
