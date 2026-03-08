@@ -683,6 +683,7 @@ export default function Chat() {
             {/* Input Area */}
             <div className="px-6 py-4 border-t border-border/50 bg-card/80 backdrop-blur-sm">
               <AnimatePresence>
+                {/* Recording indicator */}
                 {isRecording && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
@@ -700,62 +701,133 @@ export default function Chat() {
                     </Button>
                   </motion.div>
                 )}
+
+                {/* Image/File preview */}
+                {previewFile && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="mb-3 rounded-xl border border-border bg-muted/40 p-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      {previewUrl ? (
+                        <img src={previewUrl} alt="preview" className="h-32 w-32 object-cover rounded-lg" />
+                      ) : (
+                        <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
+                          {getFileIcon(previewFile.type)}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{previewFile.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {(previewFile.size / 1024).toFixed(1)} KB • {previewFile.type.split("/")[1]?.toUpperCase() || "FILE"}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="icon" variant="ghost" onClick={cancelPreview} className="rounded-full h-8 w-8">
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" onClick={sendFileFromPreview} disabled={uploadingFile} className="rounded-full h-8 w-8">
+                          {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Voice preview */}
+                {voiceBlob && voicePreviewUrl && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="mb-3 rounded-xl border border-border bg-muted/40 p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => togglePlay("voice-preview", voicePreviewUrl)}
+                        className="h-10 w-10 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center flex-shrink-0 transition-colors"
+                      >
+                        {playingId === "voice-preview"
+                          ? <Pause className="h-4 w-4 text-primary" />
+                          : <Play className="h-4 w-4 text-primary ml-0.5" />
+                        }
+                      </button>
+                      <div className="flex-1">
+                        <div className="flex gap-[2px] items-end h-6">
+                          {Array.from({ length: 30 }).map((_, i) => (
+                            <div key={i} className="w-1 rounded-full bg-primary/30" style={{ height: `${Math.random() * 16 + 6}px` }} />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          🎤 {formatDuration(voiceDuration)}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="icon" variant="ghost" onClick={cancelVoicePreview} className="rounded-full h-8 w-8">
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" onClick={sendVoiceFromPreview} disabled={sending} className="rounded-full h-8 w-8">
+                          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </AnimatePresence>
 
-              <div className="flex items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="rounded-full h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingFile || isRecording}
-                >
-                  {uploadingFile ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
-                </Button>
-
-                <form
-                  onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
-                  className="flex-1 flex items-center gap-2 bg-muted/60 rounded-full px-4 py-1 border border-border/50 focus-within:border-primary/30 focus-within:ring-1 focus-within:ring-primary/20 transition-all"
-                >
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder={t("chat.typeMessage")}
-                    className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 h-10"
-                    disabled={sending || isRecording}
+              {!previewFile && !voiceBlob && (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
                   />
-                </form>
-
-                {newMessage.trim() ? (
-                  <Button
-                    onClick={sendMessage}
-                    size="icon"
-                    className="rounded-full h-10 w-10 shadow-lg"
-                    disabled={sending}
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                ) : (
                   <Button
                     type="button"
                     size="icon"
-                    variant={isRecording ? "destructive" : "default"}
-                    className="rounded-full h-10 w-10 shadow-lg"
-                    onClick={isRecording ? stopRecording : startRecording}
-                    disabled={uploadingFile}
+                    variant="ghost"
+                    className="rounded-full h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingFile || isRecording}
                   >
-                    {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    <Paperclip className="h-5 w-5" />
                   </Button>
-                )}
-              </div>
+
+                  <form
+                    onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+                    className="flex-1 flex items-center gap-2 bg-muted/60 rounded-full px-4 py-1 border border-border/50 focus-within:border-primary/30 focus-within:ring-1 focus-within:ring-primary/20 transition-all"
+                  >
+                    <Input
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder={t("chat.typeMessage")}
+                      className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 h-10"
+                      disabled={sending || isRecording}
+                    />
+                  </form>
+
+                  {newMessage.trim() ? (
+                    <Button onClick={sendMessage} size="icon" className="rounded-full h-10 w-10 shadow-lg" disabled={sending}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={isRecording ? "destructive" : "default"}
+                      className="rounded-full h-10 w-10 shadow-lg"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={uploadingFile}
+                    >
+                      {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </>
         ) : (
