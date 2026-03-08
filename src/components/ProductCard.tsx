@@ -55,7 +55,7 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
       transition={{ delay: index * 0.04, duration: 0.4 }}
       className="group relative"
     >
-      <Link to={`/product/${product.id}`} className="block">
+      <Link to={storeBasePath ? `${storeBasePath}/product/${product.id}` : `/product/${product.id}`} className="block">
         <div className="aspect-[3/4] rounded-xl overflow-hidden bg-muted mb-3 relative">
           <img
             src={getImage()}
