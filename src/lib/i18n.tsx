@@ -143,6 +143,13 @@ const translations: Record<Lang, Record<string, string>> = {
     "account.personalInfo": "Personal Information",
     "account.email": "Email",
     "account.name": "Full Name",
+    // Reviews
+    "reviews.title": "Customer Reviews",
+    "reviews.writeReview": "Write a review",
+    "reviews.placeholder": "Share your thoughts about this product...",
+    "reviews.submit": "Submit Review",
+    "reviews.submitted": "Review submitted! It will appear after approval.",
+    "reviews.noReviews": "No reviews yet. Be the first to review!",
     "sidebar.ecommerceDashboard": "eCommerce Dashboard",
 
     // Products page
