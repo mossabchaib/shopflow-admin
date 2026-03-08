@@ -68,6 +68,15 @@ const ProductDetail = () => {
         setRelated(rel || []);
       }
 
+      // Reviews
+      const { data: revs } = await supabase
+        .from("reviews")
+        .select("*, profiles!reviews_customer_id_fkey(name, email)")
+        .eq("product_id", id)
+        .eq("status", "approved")
+        .order("created_at", { ascending: false });
+      setReviews(revs || []);
+
       // Favorite
       if (user) {
         const { data: fav } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("product_id", id).maybeSingle();
