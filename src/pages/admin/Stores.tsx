@@ -16,11 +16,25 @@ const Stores = () => {
   const { t } = useI18n();
 
   const fetchStores = async () => {
-    const { data } = await supabase
+    const { data: storesData } = await supabase
       .from("stores")
-      .select("*, profiles!stores_owner_id_fkey(name, email)")
+      .select("*")
       .order("created_at", { ascending: false });
-    setStores(data || []);
+
+    const storesList = storesData || [];
+    
+    // Fetch owner profiles
+    const ownerIds = [...new Set(storesList.map(s => s.owner_id))];
+    let profilesMap: Record<string, any> = {};
+    if (ownerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, name, email")
+        .in("user_id", ownerIds);
+      (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p; });
+    }
+
+    setStores(storesList.map(s => ({ ...s, profiles: profilesMap[s.owner_id] || null })));
     setLoading(false);
   };
 
