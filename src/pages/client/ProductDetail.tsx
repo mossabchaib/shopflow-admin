@@ -111,8 +111,13 @@ const ProductDetail = () => {
       setReviewComment("");
       setReviewRating(5);
       // Refresh reviews
-      const { data: revs } = await supabase.from("reviews").select("*, profiles!reviews_customer_id_fkey(name, email)").eq("product_id", id!).eq("status", "approved").order("created_at", { ascending: false });
-      setReviews(revs || []);
+      const { data: revs2 } = await supabase.from("reviews").select("*").eq("product_id", id!).eq("status", "approved").order("created_at", { ascending: false });
+      if (revs2 && revs2.length > 0) {
+        const cIds = [...new Set(revs2.map((r: any) => r.customer_id).filter(Boolean))];
+        const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", cIds);
+        const pm = new Map((profs || []).map((p: any) => [p.user_id, p]));
+        setReviews(revs2.map((r: any) => ({ ...r, profiles: pm.get(r.customer_id) || null })));
+      } else { setReviews([]); }
     }
     setSubmittingReview(false);
   };
