@@ -91,7 +91,8 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
               size="sm"
               className="flex-1 h-9 text-xs font-medium"
             >
-              {t("product.viewProduct") || "View Product"}
+              <Eye className="h-3.5 w-3.5 me-1.5" />
+              {t("product.viewProduct")}
             </Button>
           </div>
           {/* Fav button */}
