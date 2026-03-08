@@ -151,6 +151,7 @@ const App = () => (
                 <Route path="/cart" element={<ClientLayout><Cart /></ClientLayout>} />
                 <Route path="/checkout" element={<ClientLayout><Checkout /></ClientLayout>} />
                 <Route path="/favorites" element={<ProtectedRoute><ClientLayout><Favorites /></ClientLayout></ProtectedRoute>} />
+                <Route path="/account" element={<ProtectedRoute><ClientLayout><Account /></ClientLayout></ProtectedRoute>} />
                 <Route path="/request-store" element={<ProtectedRoute><ClientLayout><RequestStore /></ClientLayout></ProtectedRoute>} />
 
                 <Route path="*" element={<ClientLayout><NotFound /></ClientLayout>} />
