@@ -128,6 +128,8 @@ const App = () => (
                 <Routes>
                   <Route path="/auth" element={<AuthRoute><ClientLayout><Auth /></ClientLayout></AuthRoute>} />
                   <Route path="/register" element={<AuthRoute><ClientLayout><Register /></ClientLayout></AuthRoute>} />
+                  <Route path="/forgot-password" element={<ClientLayout><ForgotPassword /></ClientLayout>} />
+                  <Route path="/reset-password" element={<ClientLayout><ResetPassword /></ClientLayout>} />
 
                   {/* Admin + Seller shared routes */}
                   <Route path="/admin" element={<AdminOrSellerRoute><DashboardLayout><Dashboard /></DashboardLayout></AdminOrSellerRoute>} />
