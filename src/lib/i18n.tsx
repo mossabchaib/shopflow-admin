@@ -707,6 +707,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.categoryDetails": "تفاصيل التصنيف",
     "admin.slug": "المعرّف",
     "admin.imageUrl": "رابط الصورة",
+    "admin.uploadImage": "رفع صورة",
     "admin.deleteCategory": "حذف التصنيف؟",
     "admin.deleteCategoryDesc": "لا يمكن التراجع عن هذا الإجراء.",
     "admin.categoryCreated": "تم إنشاء التصنيف",
