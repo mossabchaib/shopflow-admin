@@ -160,6 +160,8 @@ const App = () => (
                   <Route path="/favorites" element={<ProtectedRoute><ClientLayout><Favorites /></ClientLayout></ProtectedRoute>} />
                   <Route path="/wishlists" element={<ProtectedRoute><ClientLayout><Wishlists /></ClientLayout></ProtectedRoute>} />
                   <Route path="/returns" element={<ProtectedRoute><ClientLayout><Returns /></ClientLayout></ProtectedRoute>} />
+                  <Route path="/my-orders" element={<ProtectedRoute><ClientLayout><MyOrders /></ClientLayout></ProtectedRoute>} />
+                  <Route path="/stores" element={<ClientLayout><ClientStores /></ClientLayout>} />
                   <Route path="/compare" element={<ClientLayout><Compare /></ClientLayout>} />
                   <Route path="/account" element={<ProtectedRoute><ClientLayout><Account /></ClientLayout></ProtectedRoute>} />
                   <Route path="/request-store" element={<ProtectedRoute><ClientLayout><RequestStore /></ClientLayout></ProtectedRoute>} />
