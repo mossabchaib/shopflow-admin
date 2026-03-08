@@ -90,7 +90,17 @@ const ProductDetail = () => {
         const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", customerIds);
         const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
         setReviews(revs.map((r: any) => ({ ...r, profiles: profMap.get(r.customer_id) || null })));
-      } else { setReviews([]); }
+
+        // Fetch review images
+        const reviewIds = revs.map((r: any) => r.id);
+        const { data: rImages } = await supabase.from("review_images").select("review_id, image_url").in("review_id", reviewIds);
+        const imgMap: Record<string, string[]> = {};
+        (rImages || []).forEach((ri: any) => {
+          if (!imgMap[ri.review_id]) imgMap[ri.review_id] = [];
+          imgMap[ri.review_id].push(ri.image_url);
+        });
+        setReviewImagesMap(imgMap);
+      } else { setReviews([]); setReviewImagesMap({}); }
 
       // Favorite
       if (user) {
