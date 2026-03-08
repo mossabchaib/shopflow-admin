@@ -8,10 +8,12 @@ import {
   Ticket,
   Store,
   Truck,
+  Settings,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
+import { useUserRole } from "@/hooks/useStore";
 import {
   Sidebar,
   SidebarContent,
@@ -23,15 +25,23 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const menuItems = [
+const adminMenuItems = [
   { titleKey: "sidebar.dashboard", url: "/admin", icon: LayoutDashboard },
   { titleKey: "sidebar.products", url: "/admin/products", icon: Package },
   { titleKey: "sidebar.orders", url: "/admin/orders", icon: ShoppingCart },
   { titleKey: "sidebar.customers", url: "/admin/customers", icon: Users },
   { titleKey: "sidebar.categories", url: "/admin/categories", icon: FolderTree },
   { titleKey: "sidebar.suppliers", url: "/admin/suppliers", icon: Truck },
+  { titleKey: "sidebar.stores", url: "/admin/stores", icon: Store },
   { titleKey: "sidebar.analytics", url: "/admin/analytics", icon: BarChart3 },
   { titleKey: "sidebar.discounts", url: "/admin/discounts", icon: Ticket },
+];
+
+const sellerMenuItems = [
+  { titleKey: "sidebar.dashboard", url: "/admin", icon: LayoutDashboard },
+  { titleKey: "sidebar.products", url: "/admin/products", icon: Package },
+  { titleKey: "sidebar.orders", url: "/admin/orders", icon: ShoppingCart },
+  { titleKey: "seller.storeSettings", url: "/admin/store-settings", icon: Settings },
 ];
 
 export function AppSidebar({ side = "left" }: { side?: "left" | "right" }) {
@@ -39,6 +49,9 @@ export function AppSidebar({ side = "left" }: { side?: "left" | "right" }) {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { t } = useI18n();
+  const { role } = useUserRole();
+
+  const menuItems = role === "admin" ? adminMenuItems : sellerMenuItems;
 
   return (
     <Sidebar collapsible="icon" className={side === "right" ? "border-l-0" : "border-r-0"} side={side}>
@@ -48,8 +61,12 @@ export function AppSidebar({ side = "left" }: { side?: "left" | "right" }) {
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <h1 className="text-sm font-bold text-sidebar-foreground truncate">StoreAdmin</h1>
-            <p className="text-xs text-sidebar-muted truncate">{t("sidebar.ecommerceDashboard")}</p>
+            <h1 className="text-sm font-bold text-sidebar-foreground truncate">
+              {role === "admin" ? "Admin Panel" : t("seller.myStore")}
+            </h1>
+            <p className="text-xs text-sidebar-muted truncate">
+              {role === "admin" ? t("sidebar.ecommerceDashboard") : t("seller.sellerDashboard")}
+            </p>
           </div>
         )}
       </div>

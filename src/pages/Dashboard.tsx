@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
+import { useUserRole, useUserStore } from "@/hooks/useStore";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -11,15 +12,31 @@ const Dashboard = () => {
   const [latestOrders, setLatestOrders] = useState<any[]>([]);
   const [lowStock, setLowStock] = useState<any[]>([]);
   const { t } = useI18n();
+  const { role } = useUserRole();
+  const { store } = useUserStore();
 
   useEffect(() => {
+    if (role === "seller" && !store) return;
+
     const fetchData = async () => {
+      // For sellers, scope queries to their store
+      const storeFilter = (role === "seller" && store) ? store.id : null;
+
+      let ordersQuery = supabase.from("orders").select("total, status");
+      let latestQuery = supabase.from("orders").select("id, total, status, created_at, customer_id").order("created_at", { ascending: false }).limit(5);
+      let productsQuery = supabase.from("products").select("id", { count: "exact", head: true });
+      let lowStockQuery = supabase.from("product_sizes").select("size_label, stock, products(name, store_id)").lt("stock", 10).order("stock").limit(5);
+
+      if (storeFilter) {
+        productsQuery = productsQuery.eq("store_id", storeFilter);
+      }
+
       const [ordersRes, customersRes, productsRes, latestRes, lowStockRes] = await Promise.all([
-        supabase.from("orders").select("total, status"),
+        ordersQuery,
         supabase.from("profiles").select("id", { count: "exact", head: true }),
-        supabase.from("products").select("id", { count: "exact", head: true }),
-        supabase.from("orders").select("id, total, status, created_at, customer_id").order("created_at", { ascending: false }).limit(5),
-        supabase.from("product_sizes").select("size_label, stock, products(name)").lt("stock", 10).order("stock").limit(5),
+        productsQuery,
+        latestQuery,
+        lowStockQuery,
       ]);
 
       const customerIds = [...new Set((latestRes.data || []).map((o: any) => o.customer_id).filter(Boolean))];
@@ -33,11 +50,17 @@ const Dashboard = () => {
       const revenue = (ordersRes.data || []).reduce((a: number, o: any) => a + Number(o.total), 0);
       setStats({ revenue, orders: ordersRes.data?.length || 0, customers: customersRes.count || 0, products: productsRes.count || 0 });
       setLatestOrders(orders);
-      setLowStock((lowStockRes.data as any) || []);
+      
+      // For sellers, filter low stock to their store products only
+      let lowStockData = (lowStockRes.data as any) || [];
+      if (storeFilter) {
+        lowStockData = lowStockData.filter((item: any) => item.products?.store_id === storeFilter);
+      }
+      setLowStock(lowStockData);
       setLoading(false);
     };
     fetchData();
-  }, []);
+  }, [role, store]);
 
   const statusColors: Record<string, string> = {
     delivered: "bg-success/10 text-success",

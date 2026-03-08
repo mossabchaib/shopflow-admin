@@ -16,6 +16,7 @@ import Categories from "./pages/Categories";
 import Analytics from "./pages/Analytics";
 import Discounts from "./pages/Discounts";
 import Suppliers from "./pages/Suppliers";
+import Stores from "./pages/admin/Stores";
 import Auth from "./pages/Auth";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -25,10 +26,35 @@ import ProductDetail from "./pages/client/ProductDetail";
 import Cart from "./pages/client/Cart";
 import Favorites from "./pages/client/Favorites";
 import Checkout from "./pages/client/Checkout";
+import StorePage from "./pages/client/StorePage";
+import StoreSettings from "./pages/seller/StoreSettings";
+import RequestStore from "./pages/seller/RequestStore";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
+
+function AdminOrSellerRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  const { data: userRole, isLoading: roleLoading } = useQuery({
+    queryKey: ["user-role-route", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      const roles = (data || []).map((r: any) => r.role);
+      if (roles.includes("admin")) return "admin";
+      if (roles.includes("seller")) return "seller";
+      return null;
+    },
+    enabled: !!user,
+  });
+
+  if (loading || roleLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!userRole) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -59,18 +85,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
-  const { data: isAdmin, isLoading: roleLoading } = useQuery({
-    queryKey: ["is-admin-auth-route", user?.id],
+  const { data: userRole, isLoading: roleLoading } = useQuery({
+    queryKey: ["user-role-auth-route", user?.id],
     queryFn: async () => {
-      if (!user) return false;
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-      return !!data;
+      if (!user) return null;
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      const roles = (data || []).map((r: any) => r.role);
+      if (roles.includes("admin")) return "admin";
+      if (roles.includes("seller")) return "seller";
+      return "customer";
     },
     enabled: !!user,
   });
 
   if (loading || (user && roleLoading)) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
-  if (user && isAdmin) return <Navigate to="/admin" replace />;
+  if (user && (userRole === "admin" || userRole === "seller")) return <Navigate to="/admin" replace />;
   if (user) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -88,23 +117,29 @@ const App = () => (
                 <Route path="/auth" element={<AuthRoute><ClientLayout><Auth /></ClientLayout></AuthRoute>} />
                 <Route path="/register" element={<AuthRoute><ClientLayout><Register /></ClientLayout></AuthRoute>} />
 
-                {/* Admin routes */}
-                <Route path="/admin" element={<AdminRoute><DashboardLayout><Dashboard /></DashboardLayout></AdminRoute>} />
-                <Route path="/admin/products" element={<AdminRoute><DashboardLayout><Products /></DashboardLayout></AdminRoute>} />
-                <Route path="/admin/orders" element={<AdminRoute><DashboardLayout><Orders /></DashboardLayout></AdminRoute>} />
+                {/* Admin + Seller shared routes */}
+                <Route path="/admin" element={<AdminOrSellerRoute><DashboardLayout><Dashboard /></DashboardLayout></AdminOrSellerRoute>} />
+                <Route path="/admin/products" element={<AdminOrSellerRoute><DashboardLayout><Products /></DashboardLayout></AdminOrSellerRoute>} />
+                <Route path="/admin/orders" element={<AdminOrSellerRoute><DashboardLayout><Orders /></DashboardLayout></AdminOrSellerRoute>} />
+                <Route path="/admin/store-settings" element={<AdminOrSellerRoute><DashboardLayout><StoreSettings /></DashboardLayout></AdminOrSellerRoute>} />
+
+                {/* Admin-only routes */}
                 <Route path="/admin/customers" element={<AdminRoute><DashboardLayout><Customers /></DashboardLayout></AdminRoute>} />
                 <Route path="/admin/categories" element={<AdminRoute><DashboardLayout><Categories /></DashboardLayout></AdminRoute>} />
                 <Route path="/admin/analytics" element={<AdminRoute><DashboardLayout><Analytics /></DashboardLayout></AdminRoute>} />
                 <Route path="/admin/discounts" element={<AdminRoute><DashboardLayout><Discounts /></DashboardLayout></AdminRoute>} />
                 <Route path="/admin/suppliers" element={<AdminRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminRoute>} />
+                <Route path="/admin/stores" element={<AdminRoute><DashboardLayout><Stores /></DashboardLayout></AdminRoute>} />
 
                 {/* Client routes */}
                 <Route path="/" element={<ClientLayout><Home /></ClientLayout>} />
                 <Route path="/shop" element={<ClientLayout><Shop /></ClientLayout>} />
+                <Route path="/store/:slug" element={<ClientLayout><StorePage /></ClientLayout>} />
                 <Route path="/product/:id" element={<ClientLayout><ProductDetail /></ClientLayout>} />
                 <Route path="/cart" element={<ClientLayout><Cart /></ClientLayout>} />
                 <Route path="/checkout" element={<ClientLayout><Checkout /></ClientLayout>} />
                 <Route path="/favorites" element={<ProtectedRoute><ClientLayout><Favorites /></ClientLayout></ProtectedRoute>} />
+                <Route path="/request-store" element={<ProtectedRoute><ClientLayout><RequestStore /></ClientLayout></ProtectedRoute>} />
 
                 <Route path="*" element={<ClientLayout><NotFound /></ClientLayout>} />
               </Routes>

@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
+import { useUserRole, useUserStore } from "@/hooks/useStore";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface ProductSize { id?: string; size_label: string; extra_price: number; }
@@ -44,6 +45,8 @@ const Products = () => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const { t } = useI18n();
+  const { role } = useUserRole();
+  const { store } = useUserStore();
 
   const [form, setForm] = useState({ name: "", description: "", price: "", cost_price: "", discount_price: "", category_id: "", supplier_id: "", status: "active" as string });
   const [sizes, setSizes] = useState<ProductSize[]>([{ size_label: "M", extra_price: 0 }]);
@@ -52,8 +55,15 @@ const Products = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const fetchData = async () => {
+    let prodQuery = supabase.from("products").select("*, categories(name), product_images(*), product_sizes(*), product_colors(*), product_variants(*)").order("created_at", { ascending: false });
+    
+    // If seller, only show their store's products
+    if (role === "seller" && store) {
+      prodQuery = prodQuery.eq("store_id", store.id);
+    }
+
     const [prodRes, catRes, supRes] = await Promise.all([
-      supabase.from("products").select("*, categories(name), product_images(*), product_sizes(*), product_colors(*), product_variants(*)").order("created_at", { ascending: false }),
+      prodQuery,
       supabase.from("categories").select("id, name").order("name"),
       supabase.from("suppliers").select("id, name").order("name"),
     ]);
@@ -63,7 +73,7 @@ const Products = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [role, store]);
 
   const filtered = products.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
@@ -131,7 +141,11 @@ const Products = () => {
   const handleSave = async () => {
     if (!form.name || !form.price) { toast({ title: t("common.error"), description: t("admin.nameAndPriceRequired"), variant: "destructive" }); return; }
     setSaving(true);
-    const productData = { name: form.name, description: form.description || null, price: parseFloat(form.price), cost_price: parseFloat(form.cost_price) || 0, discount_price: form.discount_price ? parseFloat(form.discount_price) : null, category_id: form.category_id || null, supplier_id: form.supplier_id || null, stock: totalStock, status: form.status as any };
+    const productData: any = { name: form.name, description: form.description || null, price: parseFloat(form.price), cost_price: parseFloat(form.cost_price) || 0, discount_price: form.discount_price ? parseFloat(form.discount_price) : null, category_id: form.category_id || null, supplier_id: form.supplier_id || null, stock: totalStock, status: form.status as any };
+    // Attach store_id for sellers
+    if (role === "seller" && store && !editing) {
+      productData.store_id = store.id;
+    }
 
     let productId = editing?.id;
     if (editing) {
