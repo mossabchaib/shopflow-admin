@@ -3,10 +3,9 @@ import { motion } from "framer-motion";
 import { Heart, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useGuestCart } from "@/hooks/useGuestCart";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { useI18n } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
 import { useState } from "react";
 
