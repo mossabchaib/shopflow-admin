@@ -54,6 +54,7 @@ export function ClientNavbar() {
   const links = [
     { href: "/", label: t("nav.home") },
     { href: "/shop", label: t("nav.shop") },
+    { href: "/stores", label: t("nav.stores") },
   ];
 
   const isActive = (path: string) => location.pathname === path;

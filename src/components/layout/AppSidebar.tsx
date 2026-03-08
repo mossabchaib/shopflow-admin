@@ -10,6 +10,8 @@ import {
   Truck,
   Settings,
   MessageSquare,
+  PieChart,
+  Tag,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -35,8 +37,10 @@ const adminMenuItems = [
 
 const sellerMenuItems = [
   { titleKey: "sidebar.dashboard", url: "/admin", icon: LayoutDashboard },
+  { titleKey: "seller.sellerOverview", url: "/admin/seller-dashboard", icon: PieChart },
   { titleKey: "sidebar.products", url: "/admin/products", icon: Package },
   { titleKey: "sidebar.orders", url: "/admin/orders", icon: ShoppingCart },
+  { titleKey: "seller.storeCoupons", url: "/admin/seller-coupons", icon: Tag },
   { titleKey: "sidebar.customers", url: "/admin/customers", icon: Users },
   { titleKey: "sidebar.categories", url: "/admin/categories", icon: FolderTree },
   { titleKey: "sidebar.suppliers", url: "/admin/suppliers", icon: Truck },
