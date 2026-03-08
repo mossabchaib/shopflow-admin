@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart, Loader2, Minus, Plus, Star, Send, Truck, GitCompareArrows } from "lucide-react";
+import { Heart, ShoppingCart, Loader2, Minus, Plus, Star, Send, Truck, GitCompareArrows, Store as StoreIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -48,7 +48,7 @@ const ProductDetail = () => {
     const fetchAll = async () => {
       setLoading(true);
       const [prodRes, imgRes, sizeRes, colorRes, varRes] = await Promise.all([
-        supabase.from("products").select("*, categories(id, name), stores(estimated_delivery_days)").eq("id", id).single(),
+        supabase.from("products").select("*, categories(id, name), stores(id, store_name, slug, logo_url, estimated_delivery_days)").eq("id", id).single(),
         supabase.from("product_images").select("*").eq("product_id", id).order("sort_order"),
         supabase.from("product_sizes").select("*").eq("product_id", id).order("size_label"),
         supabase.from("product_colors").select("*").eq("product_id", id).order("color_name"),
@@ -195,6 +195,27 @@ const ProductDetail = () => {
           </div>
 
           {product.description && <p className="text-muted-foreground leading-relaxed">{product.description}</p>}
+
+          {/* Store info card */}
+          {product.stores?.slug && (
+            <Link to={`/store/${product.stores.slug}`} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/50 hover:border-primary/50 transition-colors group/store">
+              {product.stores.logo_url ? (
+                <img src={product.stores.logo_url} alt={product.stores.store_name} className="h-10 w-10 rounded-lg object-cover border border-border" />
+              ) : (
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <StoreIcon className="h-5 w-5 text-primary" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">{t("product.soldBy")}</p>
+                <p className="text-sm font-medium text-foreground truncate group-hover/store:text-primary transition-colors">{product.stores.store_name}</p>
+              </div>
+              <Button size="sm" variant="outline" className="text-xs shrink-0">
+                <StoreIcon className="h-3.5 w-3.5 me-1.5" />
+                {t("product.visitStore")}
+              </Button>
+            </Link>
+          )}
 
           {/* Delivery estimation */}
           {deliveryDays && (

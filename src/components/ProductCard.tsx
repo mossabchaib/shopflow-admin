@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, Eye } from "lucide-react";
+import { Heart, Eye, Store as StoreIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,8 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
   };
 
   const price = product.discount_price || product.price;
+  const storeName = product.stores?.store_name;
+  const storeSlug = product.stores?.slug;
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -72,6 +74,21 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
               <Eye className="h-3.5 w-3.5 me-1.5" />
               {t("product.viewProduct")}
             </Button>
+            {/* Visit Store button - only show if product has a store and we're not already inside a store */}
+            {storeSlug && !storeBasePath && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-9 text-xs font-medium"
+                asChild
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              >
+                <Link to={`/store/${storeSlug}`}>
+                  <StoreIcon className="h-3.5 w-3.5 me-1.5" />
+                  {t("product.visitStore")}
+                </Link>
+              </Button>
+            )}
           </div>
           {/* Fav button */}
           <button
@@ -90,6 +107,13 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">{product.categories?.name || ""}</p>
           <h3 className="text-sm font-medium text-foreground truncate leading-tight">{product.name}</h3>
+          {/* Store name under product */}
+          {storeName && !storeBasePath && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <StoreIcon className="h-3 w-3" />
+              {storeName}
+            </p>
+          )}
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-success">${Number(price).toFixed(2)}</span>
             {product.discount_price && (
