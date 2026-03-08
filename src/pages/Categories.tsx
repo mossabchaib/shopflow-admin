@@ -128,7 +128,25 @@ const Categories = () => {
           <div className="space-y-4 pt-4">
             <div><Label>{t("admin.name")}</Label><Input value={form.name} onChange={(e) => { setForm({ ...form, name: e.target.value, slug: editing ? form.slug : autoSlug(e.target.value) }); }} className="mt-1.5" /></div>
             <div><Label>{t("admin.slug")}</Label><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} className="mt-1.5" /></div>
-            <div><Label>{t("admin.imageUrl")}</Label><Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." className="mt-1.5" /></div>
+            <div>
+              <Label>{t("admin.images")}</Label>
+              <div className="mt-1.5 space-y-2">
+                {previewUrl && (
+                  <div className="relative inline-block">
+                    <img src={previewUrl} alt="preview" className="h-24 w-24 rounded-lg object-cover border border-border" />
+                    <button onClick={() => { setPreviewUrl(null); setForm(f => ({ ...f, image_url: "" })); }} className="absolute -top-2 -end-2 bg-destructive text-destructive-foreground rounded-full p-0.5"><X className="h-3 w-3" /></button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                    {uploading ? <Loader2 className="h-4 w-4 me-1 animate-spin" /> : <Upload className="h-4 w-4 me-1" />}
+                    {uploading ? "..." : t("admin.uploadImage")}
+                  </Button>
+                  <Input value={form.image_url} onChange={(e) => { setForm({ ...form, image_url: e.target.value }); setPreviewUrl(e.target.value || null); }} placeholder="https://..." className="flex-1 text-xs" />
+                </div>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ""; }} />
+              </div>
+            </div>
             <Button className="w-full" onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{editing ? t("admin.categoryUpdated").replace("تم تحديث التصنيف","تحديث").replace("Category updated","Update").replace("Catégorie mise à jour","Modifier") : t("admin.addCategory")}</Button>
           </div>
         </DialogContent>
