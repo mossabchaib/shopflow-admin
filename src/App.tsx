@@ -36,7 +36,11 @@ import Account from "./pages/client/Account";
 import Wishlists from "./pages/client/Wishlists";
 import Returns from "./pages/client/Returns";
 import Compare from "./pages/client/Compare";
+import ClientStores from "./pages/client/Stores";
+import MyOrders from "./pages/client/MyOrders";
 import StoreSettings from "./pages/seller/StoreSettings";
+import SellerDashboard from "./pages/seller/SellerDashboard";
+import SellerCoupons from "./pages/seller/SellerCoupons";
 import RequestStore from "./pages/seller/RequestStore";
 import Reviews from "./pages/Reviews";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,6 +132,8 @@ const App = () => (
                   <Route path="/admin/orders" element={<AdminOrSellerRoute><DashboardLayout><Orders /></DashboardLayout></AdminOrSellerRoute>} />
                   <Route path="/admin/store-settings" element={<AdminOrSellerRoute><DashboardLayout><StoreSettings /></DashboardLayout></AdminOrSellerRoute>} />
                   <Route path="/admin/reviews" element={<AdminOrSellerRoute><DashboardLayout><Reviews /></DashboardLayout></AdminOrSellerRoute>} />
+                  <Route path="/admin/seller-dashboard" element={<AdminOrSellerRoute><DashboardLayout><SellerDashboard /></DashboardLayout></AdminOrSellerRoute>} />
+                  <Route path="/admin/seller-coupons" element={<AdminOrSellerRoute><DashboardLayout><SellerCoupons /></DashboardLayout></AdminOrSellerRoute>} />
 
                   {/* Admin-only routes */}
                   <Route path="/admin/stores" element={<AdminRoute><DashboardLayout><Stores /></DashboardLayout></AdminRoute>} />
@@ -154,6 +160,8 @@ const App = () => (
                   <Route path="/favorites" element={<ProtectedRoute><ClientLayout><Favorites /></ClientLayout></ProtectedRoute>} />
                   <Route path="/wishlists" element={<ProtectedRoute><ClientLayout><Wishlists /></ClientLayout></ProtectedRoute>} />
                   <Route path="/returns" element={<ProtectedRoute><ClientLayout><Returns /></ClientLayout></ProtectedRoute>} />
+                  <Route path="/my-orders" element={<ProtectedRoute><ClientLayout><MyOrders /></ClientLayout></ProtectedRoute>} />
+                  <Route path="/stores" element={<ClientLayout><ClientStores /></ClientLayout>} />
                   <Route path="/compare" element={<ClientLayout><Compare /></ClientLayout>} />
                   <Route path="/account" element={<ProtectedRoute><ClientLayout><Account /></ClientLayout></ProtectedRoute>} />
                   <Route path="/request-store" element={<ProtectedRoute><ClientLayout><RequestStore /></ClientLayout></ProtectedRoute>} />

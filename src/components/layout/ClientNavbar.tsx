@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingCart, Heart, Menu, X, Store, LogOut, LayoutDashboard, Globe, Sun, Moon, UserCircle, List, RotateCcw } from "lucide-react";
+import { ShoppingCart, Heart, Menu, X, Store, LogOut, LayoutDashboard, Globe, Sun, Moon, UserCircle, List, RotateCcw, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,6 +54,7 @@ export function ClientNavbar() {
   const links = [
     { href: "/", label: t("nav.home") },
     { href: "/shop", label: t("nav.shop") },
+    { href: "/stores", label: t("nav.stores") },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -104,6 +105,12 @@ export function ClientNavbar() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {user && (
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/my-orders")} title={t("orders.myOrders")}>
+                <Package className={`h-4 w-4 ${isActive("/my-orders") ? "text-primary" : ""}`} />
+              </Button>
+            )}
 
             {user && (
               <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/account")} title={t("nav.account")}>
