@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart, Loader2, Minus, Plus } from "lucide-react";
+import { Heart, ShoppingCart, Loader2, Minus, Plus, Star, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProductCard } from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,12 +26,17 @@ const ProductDetail = () => {
   const [colors, setColors] = useState<any[]>([]);
   const [variants, setVariants] = useState<any[]>([]);
   const [related, setRelated] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isFav, setIsFav] = useState(false);
+  // Review form
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -61,6 +68,23 @@ const ProductDetail = () => {
         setRelated(rel || []);
       }
 
+      // Reviews
+      const { data: revs } = await supabase
+        .from("reviews")
+        .select("*")
+        .eq("product_id", id)
+        .eq("status", "approved")
+        .order("created_at", { ascending: false });
+      // Enrich reviews with profile data
+      if (revs && revs.length > 0) {
+        const customerIds = [...new Set(revs.map((r: any) => r.customer_id).filter(Boolean))];
+        const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", customerIds);
+        const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
+        setReviews(revs.map((r: any) => ({ ...r, profiles: profMap.get(r.customer_id) || null })));
+      } else {
+        setReviews([]);
+      }
+
       // Favorite
       if (user) {
         const { data: fav } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("product_id", id).maybeSingle();
@@ -71,6 +95,34 @@ const ProductDetail = () => {
     };
     fetchAll();
   }, [id, user]);
+
+  const submitReview = async () => {
+    if (!user) { toast({ title: t("common.pleaseSignIn"), variant: "destructive" }); return; }
+    setSubmittingReview(true);
+    const { error } = await supabase.from("reviews").insert({
+      product_id: id!,
+      customer_id: user.id,
+      rating: reviewRating,
+      comment: reviewComment.trim() || null,
+    });
+    if (error) toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    else {
+      toast({ title: t("reviews.submitted") });
+      setReviewComment("");
+      setReviewRating(5);
+      // Refresh reviews
+      const { data: revs2 } = await supabase.from("reviews").select("*").eq("product_id", id!).eq("status", "approved").order("created_at", { ascending: false });
+      if (revs2 && revs2.length > 0) {
+        const cIds = [...new Set(revs2.map((r: any) => r.customer_id).filter(Boolean))];
+        const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", cIds);
+        const pm = new Map((profs || []).map((p: any) => [p.user_id, p]));
+        setReviews(revs2.map((r: any) => ({ ...r, profiles: pm.get(r.customer_id) || null })));
+      } else { setReviews([]); }
+    }
+    setSubmittingReview(false);
+  };
+
+  const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length : 0;
 
   const toggleFav = async () => {
     if (!user) { toast({ title: t("common.pleaseSignIn"), variant: "destructive" }); return; }
@@ -237,6 +289,78 @@ const ProductDetail = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Reviews Section */}
+      <div className="mt-16">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-foreground">{t("reviews.title")}</h2>
+          {reviews.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Star key={s} className={`h-4 w-4 ${s <= Math.round(avgRating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                ))}
+              </div>
+              <span className="text-sm font-medium text-foreground">{avgRating.toFixed(1)}</span>
+              <span className="text-sm text-muted-foreground">({reviews.length})</span>
+            </div>
+          )}
+        </div>
+
+        {/* Review Form */}
+        {user && (
+          <div className="mb-8 p-4 rounded-xl border border-border bg-muted/20">
+            <p className="text-sm font-medium text-foreground mb-3">{t("reviews.writeReview")}</p>
+            <div className="flex gap-1 mb-3">
+              {[1, 2, 3, 4, 5].map(s => (
+                <button key={s} onClick={() => setReviewRating(s)} className="transition-transform hover:scale-110">
+                  <Star className={`h-6 w-6 ${s <= reviewRating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                </button>
+              ))}
+            </div>
+            <Textarea
+              value={reviewComment}
+              onChange={e => setReviewComment(e.target.value)}
+              placeholder={t("reviews.placeholder")}
+              className="mb-3 resize-none"
+              rows={3}
+            />
+            <Button onClick={submitReview} disabled={submittingReview} size="sm">
+              {submittingReview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              {t("reviews.submit")}
+            </Button>
+          </div>
+        )}
+
+        {/* Review List */}
+        {reviews.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">{t("reviews.noReviews")}</p>
+        ) : (
+          <div className="space-y-4">
+            {reviews.map(r => (
+              <div key={r.id} className="p-4 rounded-xl border border-border/50 bg-card">
+                <div className="flex items-center gap-3 mb-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                      {(r.profiles?.name || r.profiles?.email || "?")?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">{r.profiles?.name || r.profiles?.email || "Customer"}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <Star key={s} className={`h-3.5 w-3.5 ${s <= (r.rating || 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                    ))}
+                  </div>
+                </div>
+                {r.comment && <p className="text-sm text-muted-foreground leading-relaxed">{r.comment}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Related Products */}
       {related.length > 0 && (

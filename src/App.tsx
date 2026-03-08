@@ -31,6 +31,7 @@ import Checkout from "./pages/client/Checkout";
 import StoreHome from "./pages/client/StoreHome";
 import StoreShop from "./pages/client/StoreShop";
 import StoreProductDetail from "./pages/client/StoreProductDetail";
+import Account from "./pages/client/Account";
 import StoreSettings from "./pages/seller/StoreSettings";
 import RequestStore from "./pages/seller/RequestStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -150,6 +151,7 @@ const App = () => (
                 <Route path="/cart" element={<ClientLayout><Cart /></ClientLayout>} />
                 <Route path="/checkout" element={<ClientLayout><Checkout /></ClientLayout>} />
                 <Route path="/favorites" element={<ProtectedRoute><ClientLayout><Favorites /></ClientLayout></ProtectedRoute>} />
+                <Route path="/account" element={<ProtectedRoute><ClientLayout><Account /></ClientLayout></ProtectedRoute>} />
                 <Route path="/request-store" element={<ProtectedRoute><ClientLayout><RequestStore /></ClientLayout></ProtectedRoute>} />
 
                 <Route path="*" element={<ClientLayout><NotFound /></ClientLayout>} />

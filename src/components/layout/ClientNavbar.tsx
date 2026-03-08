@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingCart, Heart, Menu, X, Store, LogOut, LayoutDashboard, Globe, Sun, Moon } from "lucide-react";
+import { ShoppingCart, Heart, Menu, X, Store, LogOut, LayoutDashboard, Globe, Sun, Moon, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
@@ -103,6 +103,12 @@ export function ClientNavbar() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {user && (
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/account")} title={t("nav.account")}>
+                <UserCircle className={`h-4 w-4 ${isActive("/account") ? "text-primary" : ""}`} />
+              </Button>
+            )}
 
             {user && (
               <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/favorites")}>
