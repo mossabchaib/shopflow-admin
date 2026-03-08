@@ -27,14 +27,8 @@ import {
 
 const adminMenuItems = [
   { titleKey: "sidebar.dashboard", url: "/admin", icon: LayoutDashboard },
-  { titleKey: "sidebar.products", url: "/admin/products", icon: Package },
-  { titleKey: "sidebar.orders", url: "/admin/orders", icon: ShoppingCart },
-  { titleKey: "sidebar.customers", url: "/admin/customers", icon: Users },
-  { titleKey: "sidebar.categories", url: "/admin/categories", icon: FolderTree },
-  { titleKey: "sidebar.suppliers", url: "/admin/suppliers", icon: Truck },
   { titleKey: "sidebar.stores", url: "/admin/stores", icon: Store },
   { titleKey: "sidebar.analytics", url: "/admin/analytics", icon: BarChart3 },
-  { titleKey: "sidebar.discounts", url: "/admin/discounts", icon: Ticket },
 ];
 
 const sellerMenuItems = [
