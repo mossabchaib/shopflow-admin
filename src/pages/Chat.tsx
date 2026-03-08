@@ -243,12 +243,6 @@ export default function Chat() {
     setSending(false);
   }
 
-  // File upload
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !activeConv || !user) return;
-    if (file.size > 20 * 1024 * 1024) { toast.error("File too large (max 20MB)"); return; }
-
   // File selected → show preview
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
