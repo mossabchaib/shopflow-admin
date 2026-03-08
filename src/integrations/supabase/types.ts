@@ -506,6 +506,7 @@ export type Database = {
           price: number
           status: Database["public"]["Enums"]["product_status"] | null
           stock: number | null
+          store_id: string | null
           supplier_id: string | null
           updated_at: string | null
         }
@@ -520,6 +521,7 @@ export type Database = {
           price?: number
           status?: Database["public"]["Enums"]["product_status"] | null
           stock?: number | null
+          store_id?: string | null
           supplier_id?: string | null
           updated_at?: string | null
         }
@@ -534,6 +536,7 @@ export type Database = {
           price?: number
           status?: Database["public"]["Enums"]["product_status"] | null
           stock?: number | null
+          store_id?: string | null
           supplier_id?: string | null
           updated_at?: string | null
         }
@@ -543,6 +546,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
@@ -664,6 +674,45 @@ export type Database = {
         }
         Relationships: []
       }
+      stores: {
+        Row: {
+          background_url: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          logo_url: string | null
+          owner_id: string
+          slug: string
+          status: string
+          store_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          background_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          owner_id: string
+          slug: string
+          status?: string
+          store_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          background_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          owner_id?: string
+          slug?: string
+          status?: string
+          store_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           address: string | null
@@ -729,7 +778,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "customer"
+      app_role: "admin" | "customer" | "seller"
       discount_type: "percentage" | "fixed"
       order_status: "pending" | "paid" | "shipped" | "delivered" | "cancelled"
       payment_method: "credit_card" | "paypal" | "cash_on_delivery" | "stripe"
@@ -863,7 +912,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "customer"],
+      app_role: ["admin", "customer", "seller"],
       discount_type: ["percentage", "fixed"],
       order_status: ["pending", "paid", "shipped", "delivered", "cancelled"],
       payment_method: ["credit_card", "paypal", "cash_on_delivery", "stripe"],
