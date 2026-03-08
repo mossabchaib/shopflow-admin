@@ -71,11 +71,19 @@ const ProductDetail = () => {
       // Reviews
       const { data: revs } = await supabase
         .from("reviews")
-        .select("*, profiles!reviews_customer_id_fkey(name, email)")
+        .select("*")
         .eq("product_id", id)
         .eq("status", "approved")
         .order("created_at", { ascending: false });
-      setReviews(revs || []);
+      // Enrich reviews with profile data
+      if (revs && revs.length > 0) {
+        const customerIds = [...new Set(revs.map((r: any) => r.customer_id).filter(Boolean))];
+        const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", customerIds);
+        const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
+        setReviews(revs.map((r: any) => ({ ...r, profiles: profMap.get(r.customer_id) || null })));
+      } else {
+        setReviews([]);
+      }
 
       // Favorite
       if (user) {
