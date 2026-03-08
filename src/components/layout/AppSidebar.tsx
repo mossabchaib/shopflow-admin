@@ -9,6 +9,7 @@ import {
   Store,
   Truck,
   Settings,
+  MessageSquare,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -29,6 +30,7 @@ const adminMenuItems = [
   { titleKey: "sidebar.dashboard", url: "/admin", icon: LayoutDashboard },
   { titleKey: "sidebar.stores", url: "/admin/stores", icon: Store },
   { titleKey: "sidebar.analytics", url: "/admin/analytics", icon: BarChart3 },
+  { titleKey: "sidebar.chat", url: "/admin/chat", icon: MessageSquare },
 ];
 
 const sellerMenuItems = [
@@ -41,6 +43,7 @@ const sellerMenuItems = [
   { titleKey: "sidebar.analytics", url: "/admin/analytics", icon: BarChart3 },
   { titleKey: "sidebar.discounts", url: "/admin/discounts", icon: Ticket },
   { titleKey: "seller.storeSettings", url: "/admin/store-settings", icon: Settings },
+  { titleKey: "sidebar.chat", url: "/admin/chat", icon: MessageSquare },
 ];
 
 export function AppSidebar({ side = "left" }: { side?: "left" | "right" }) {

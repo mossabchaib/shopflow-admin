@@ -17,6 +17,7 @@ import Categories from "./pages/Categories";
 import Analytics from "./pages/Analytics";
 import Discounts from "./pages/Discounts";
 import Suppliers from "./pages/Suppliers";
+import Chat from "./pages/Chat";
 import Stores from "./pages/admin/Stores";
 import Auth from "./pages/Auth";
 import Register from "./pages/Register";
@@ -135,6 +136,7 @@ const App = () => (
                 <Route path="/admin/analytics" element={<AdminOrSellerRoute><DashboardLayout><Analytics /></DashboardLayout></AdminOrSellerRoute>} />
                 <Route path="/admin/discounts" element={<AdminOrSellerRoute><DashboardLayout><Discounts /></DashboardLayout></AdminOrSellerRoute>} />
                 <Route path="/admin/suppliers" element={<AdminOrSellerRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminOrSellerRoute>} />
+                <Route path="/admin/chat" element={<AdminOrSellerRoute><DashboardLayout><Chat /></DashboardLayout></AdminOrSellerRoute>} />
 
                 {/* Store sub-site routes — full website per store */}
                 <Route path="/store/:slug" element={<StoreLayout><StoreHome /></StoreLayout>} />
