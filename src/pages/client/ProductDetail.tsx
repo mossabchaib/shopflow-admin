@@ -88,7 +88,29 @@ const ProductDetail = () => {
     fetchAll();
   }, [id, user]);
 
-  const toggleFav = async () => {
+  const submitReview = async () => {
+    if (!user) { toast({ title: t("common.pleaseSignIn"), variant: "destructive" }); return; }
+    setSubmittingReview(true);
+    const { error } = await supabase.from("reviews").insert({
+      product_id: id!,
+      customer_id: user.id,
+      rating: reviewRating,
+      comment: reviewComment.trim() || null,
+    });
+    if (error) toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    else {
+      toast({ title: t("reviews.submitted") });
+      setReviewComment("");
+      setReviewRating(5);
+      // Refresh reviews
+      const { data: revs } = await supabase.from("reviews").select("*, profiles!reviews_customer_id_fkey(name, email)").eq("product_id", id!).eq("status", "approved").order("created_at", { ascending: false });
+      setReviews(revs || []);
+    }
+    setSubmittingReview(false);
+  };
+
+  const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length : 0;
+
     if (!user) { toast({ title: t("common.pleaseSignIn"), variant: "destructive" }); return; }
     if (isFav) {
       await supabase.from("favorites").delete().eq("user_id", user.id).eq("product_id", id!);
