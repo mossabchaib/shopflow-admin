@@ -13,6 +13,8 @@ interface ProductCardProps {
   index?: number;
   isFavorite?: boolean;
   onFavoriteToggle?: (productId: string, isFav: boolean) => void;
+  /** When inside a store, links go to /store/:slug/product/:id */
+  storeBasePath?: string;
 }
 
 export function ProductCard({ product, index = 0, isFavorite = false, onFavoriteToggle }: ProductCardProps) {
