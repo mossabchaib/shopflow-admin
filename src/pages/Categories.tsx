@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Eye, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Edit, Trash2, Eye, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -20,8 +20,23 @@ const Categories = () => {
   const [editing, setEditing] = useState<Category | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", image_url: "" });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { t } = useI18n();
+
+  const handleFileUpload = async (file: File) => {
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `categories/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); setUploading(false); return; }
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+    setForm(f => ({ ...f, image_url: urlData.publicUrl }));
+    setPreviewUrl(urlData.publicUrl);
+    setUploading(false);
+  };
 
   const fetchCategories = async () => {
     const { data, error } = await supabase.from("categories").select("*").order("created_at", { ascending: false });
@@ -32,8 +47,8 @@ const Categories = () => {
 
   useEffect(() => { fetchCategories(); }, []);
 
-  const openCreate = () => { setEditing(null); setForm({ name: "", slug: "", image_url: "" }); setDialogOpen(true); };
-  const openEdit = (cat: Category) => { setEditing(cat); setForm({ name: cat.name, slug: cat.slug, image_url: cat.image_url || "" }); setDialogOpen(true); };
+  const openCreate = () => { setEditing(null); setForm({ name: "", slug: "", image_url: "" }); setPreviewUrl(null); setDialogOpen(true); };
+  const openEdit = (cat: Category) => { setEditing(cat); setForm({ name: cat.name, slug: cat.slug, image_url: cat.image_url || "" }); setPreviewUrl(cat.image_url || null); setDialogOpen(true); };
 
   const handleSave = async () => {
     if (!form.name || !form.slug) { toast({ title: t("common.error"), description: t("admin.nameSlugRequired"), variant: "destructive" }); return; }
@@ -113,7 +128,25 @@ const Categories = () => {
           <div className="space-y-4 pt-4">
             <div><Label>{t("admin.name")}</Label><Input value={form.name} onChange={(e) => { setForm({ ...form, name: e.target.value, slug: editing ? form.slug : autoSlug(e.target.value) }); }} className="mt-1.5" /></div>
             <div><Label>{t("admin.slug")}</Label><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} className="mt-1.5" /></div>
-            <div><Label>{t("admin.imageUrl")}</Label><Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." className="mt-1.5" /></div>
+            <div>
+              <Label>{t("admin.images")}</Label>
+              <div className="mt-1.5 space-y-2">
+                {previewUrl && (
+                  <div className="relative inline-block">
+                    <img src={previewUrl} alt="preview" className="h-24 w-24 rounded-lg object-cover border border-border" />
+                    <button onClick={() => { setPreviewUrl(null); setForm(f => ({ ...f, image_url: "" })); }} className="absolute -top-2 -end-2 bg-destructive text-destructive-foreground rounded-full p-0.5"><X className="h-3 w-3" /></button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                    {uploading ? <Loader2 className="h-4 w-4 me-1 animate-spin" /> : <Upload className="h-4 w-4 me-1" />}
+                    {uploading ? "..." : t("admin.uploadImage")}
+                  </Button>
+                  <Input value={form.image_url} onChange={(e) => { setForm({ ...form, image_url: e.target.value }); setPreviewUrl(e.target.value || null); }} placeholder="https://..." className="flex-1 text-xs" />
+                </div>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ""; }} />
+              </div>
+            </div>
             <Button className="w-full" onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}{editing ? t("admin.categoryUpdated").replace("تم تحديث التصنيف","تحديث").replace("Category updated","Update").replace("Catégorie mise à jour","Modifier") : t("admin.addCategory")}</Button>
           </div>
         </DialogContent>
