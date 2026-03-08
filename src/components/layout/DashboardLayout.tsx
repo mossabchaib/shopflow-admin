@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Moon, Sun, Bell, LogOut, ShoppingCart, Package } from "lucide-react";
+import { Moon, Sun, Bell, LogOut, Store, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
@@ -37,29 +37,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       setNotifLoading(true);
       const notifs: Notification[] = [];
 
-      const [pendingRes, lowStockRes] = await Promise.all([
-        supabase.from("orders").select("id, total, created_at").eq("status", "pending").order("created_at", { ascending: false }).limit(10),
-        supabase.from("product_variants").select("stock, product_sizes(size_label), product_colors(color_name), products(name)").lt("stock", 5).order("stock").limit(10),
+      const [pendingStoresRes, unreadChatsRes] = await Promise.all([
+        supabase.from("stores").select("id, store_name, created_at").eq("status", "pending").order("created_at", { ascending: false }).limit(10),
+        supabase.from("chat_messages").select("id, content, created_at").eq("is_read", false).order("created_at", { ascending: false }).limit(10),
       ]);
 
-      (pendingRes.data || []).forEach((o: any) => {
+      (pendingStoresRes.data || []).forEach((s: any) => {
         notifs.push({
-          id: `order-${o.id}`,
+          id: `store-${s.id}`,
           type: "order",
-          message: t("admin.newPendingOrder"),
-          detail: `$${Number(o.total).toFixed(2)} — ${new Date(o.created_at).toLocaleDateString()}`,
+          message: t("admin.newStoreRequest"),
+          detail: `${s.store_name} — ${new Date(s.created_at).toLocaleDateString()}`,
         });
       });
 
-      (lowStockRes.data || []).forEach((v: any, i: number) => {
-        const productName = v.products?.name || "—";
-        const sizeName = v.product_sizes?.size_label || "";
-        const colorName = v.product_colors?.color_name || "";
+      (unreadChatsRes.data || []).forEach((m: any, i: number) => {
         notifs.push({
-          id: `stock-${i}`,
+          id: `chat-${m.id}`,
           type: "stock",
-          message: t("admin.lowStockWarning"),
-          detail: `${productName} ${sizeName} ${colorName} — ${v.stock} ${t("admin.left")}`,
+          message: t("admin.newChatMessage"),
+          detail: m.content?.slice(0, 50) || "...",
         });
       });
 
@@ -118,8 +115,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     ) : (
                       notifications.map((n) => (
                         <div key={n.id} className="flex items-start gap-3 p-3 border-b last:border-0 hover:bg-muted/50 transition-colors">
-                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${n.type === "order" ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning"}`}>
-                            {n.type === "order" ? <ShoppingCart className="h-4 w-4" /> : <Package className="h-4 w-4" />}
+                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${n.type === "order" ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary"}`}>
+                            {n.type === "order" ? <Store className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium">{n.message}</p>
