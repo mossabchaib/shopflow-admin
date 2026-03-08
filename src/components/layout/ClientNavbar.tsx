@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingCart, Heart, Menu, X, Store, LogOut, LayoutDashboard, Globe, Sun, Moon, UserCircle } from "lucide-react";
+import { ShoppingCart, Heart, Menu, X, Store, LogOut, LayoutDashboard, Globe, Sun, Moon, UserCircle, List, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useI18n, Lang } from "@/lib/i18n";
 import { useGuestCart } from "@/hooks/useGuestCart";
 import { useTheme } from "next-themes";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const languages: { code: Lang; label: string }[] = [
   { code: "en", label: "English" },
@@ -109,6 +110,8 @@ export function ClientNavbar() {
                 <UserCircle className={`h-4 w-4 ${isActive("/account") ? "text-primary" : ""}`} />
               </Button>
             )}
+
+            {user && <NotificationBell />}
 
             {user && (
               <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/favorites")}>

@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart, Loader2, Minus, Plus, Star, Send } from "lucide-react";
+import { Heart, ShoppingCart, Loader2, Minus, Plus, Star, Send, Truck, GitCompareArrows } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { ProductCard } from "@/components/ProductCard";
+import { ProductQA } from "@/components/ProductQA";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGuestCart } from "@/hooks/useGuestCart";
 import { useI18n } from "@/lib/i18n";
+import { trackProductView } from "@/components/RecentlyViewed";
+import { useCompare } from "@/components/ProductComparison";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +24,7 @@ const ProductDetail = () => {
   const queryClient = useQueryClient();
   const { addItem } = useGuestCart();
   const { t } = useI18n();
+  const { addItem: addToCompare, isInCompare, removeItem: removeFromCompare } = useCompare();
   const [product, setProduct] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
   const [sizes, setSizes] = useState<any[]>([]);
@@ -33,17 +38,17 @@ const ProductDetail = () => {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isFav, setIsFav] = useState(false);
-  // Review form
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [deliveryDays, setDeliveryDays] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
     const fetchAll = async () => {
       setLoading(true);
       const [prodRes, imgRes, sizeRes, colorRes, varRes] = await Promise.all([
-        supabase.from("products").select("*, categories(id, name)").eq("id", id).single(),
+        supabase.from("products").select("*, categories(id, name), stores(estimated_delivery_days)").eq("id", id).single(),
         supabase.from("product_images").select("*").eq("product_id", id).order("sort_order"),
         supabase.from("product_sizes").select("*").eq("product_id", id).order("size_label"),
         supabase.from("product_colors").select("*").eq("product_id", id).order("color_name"),
@@ -55,6 +60,12 @@ const ProductDetail = () => {
       setSizes(sizeRes.data || []);
       setColors(colorRes.data || []);
       setVariants(varRes.data || []);
+      setDeliveryDays((prodRes.data as any)?.stores?.estimated_delivery_days || null);
+
+      // Track view
+      if (user && prodRes.data) {
+        trackProductView(user.id, id);
+      }
 
       // Related products
       if (prodRes.data?.category_id) {
@@ -69,28 +80,19 @@ const ProductDetail = () => {
       }
 
       // Reviews
-      const { data: revs } = await supabase
-        .from("reviews")
-        .select("*")
-        .eq("product_id", id)
-        .eq("status", "approved")
-        .order("created_at", { ascending: false });
-      // Enrich reviews with profile data
+      const { data: revs } = await supabase.from("reviews").select("*").eq("product_id", id).eq("status", "approved").order("created_at", { ascending: false });
       if (revs && revs.length > 0) {
         const customerIds = [...new Set(revs.map((r: any) => r.customer_id).filter(Boolean))];
         const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", customerIds);
         const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
         setReviews(revs.map((r: any) => ({ ...r, profiles: profMap.get(r.customer_id) || null })));
-      } else {
-        setReviews([]);
-      }
+      } else { setReviews([]); }
 
       // Favorite
       if (user) {
         const { data: fav } = await supabase.from("favorites").select("id").eq("user_id", user.id).eq("product_id", id).maybeSingle();
         setIsFav(!!fav);
       }
-
       setLoading(false);
     };
     fetchAll();
@@ -99,18 +101,12 @@ const ProductDetail = () => {
   const submitReview = async () => {
     if (!user) { toast({ title: t("common.pleaseSignIn"), variant: "destructive" }); return; }
     setSubmittingReview(true);
-    const { error } = await supabase.from("reviews").insert({
-      product_id: id!,
-      customer_id: user.id,
-      rating: reviewRating,
-      comment: reviewComment.trim() || null,
-    });
+    const { error } = await supabase.from("reviews").insert({ product_id: id!, customer_id: user.id, rating: reviewRating, comment: reviewComment.trim() || null });
     if (error) toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     else {
       toast({ title: t("reviews.submitted") });
       setReviewComment("");
       setReviewRating(5);
-      // Refresh reviews
       const { data: revs2 } = await supabase.from("reviews").select("*").eq("product_id", id!).eq("status", "approved").order("created_at", { ascending: false });
       if (revs2 && revs2.length > 0) {
         const cIds = [...new Set(revs2.map((r: any) => r.customer_id).filter(Boolean))];
@@ -136,22 +132,10 @@ const ProductDetail = () => {
   };
 
   const addToCart = async () => {
-    if (sizes.length > 0 && !selectedSize) {
-      toast({ title: t("product.size"), description: "Please select a size", variant: "destructive" });
-      return;
-    }
-    if (colors.length > 0 && !selectedColor) {
-      toast({ title: t("product.color") || "Color", description: "Please select a color", variant: "destructive" });
-      return;
-    }
+    if (sizes.length > 0 && !selectedSize) { toast({ title: t("product.size"), description: "Please select a size", variant: "destructive" }); return; }
+    if (colors.length > 0 && !selectedColor) { toast({ title: t("product.color") || "Color", description: "Please select a color", variant: "destructive" }); return; }
     if (user) {
-      const { error } = await supabase.from("cart_items").insert({
-        user_id: user.id,
-        product_id: id!,
-        size_id: selectedSize,
-        color_id: selectedColor,
-        quantity,
-      });
+      const { error } = await supabase.from("cart_items").insert({ user_id: user.id, product_id: id!, size_id: selectedSize, color_id: selectedColor, quantity });
       if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); return; }
       queryClient.invalidateQueries({ queryKey: ["cart-count"] });
     } else {
@@ -190,14 +174,35 @@ const ProductDetail = () => {
           <div>
             <p className="text-sm text-primary font-medium">{product.categories?.name}</p>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground mt-1">{product.name}</h1>
+            {/* Rating summary */}
+            {reviews.length > 0 && (
+              <div className="flex items-center gap-2 mt-2">
+                <div className="flex">{[1, 2, 3, 4, 5].map(s => <Star key={s} className={`h-4 w-4 ${s <= Math.round(avgRating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}</div>
+                <span className="text-sm font-medium">{avgRating.toFixed(1)}</span>
+                <span className="text-sm text-muted-foreground">({reviews.length} {t("reviews.title").toLowerCase()})</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-bold text-success">${(Number(price) + Number(sizeExtra)).toFixed(2)}</span>
             {product.discount_price && <span className="text-lg text-destructive line-through">${Number(product.price).toFixed(2)}</span>}
+            {product.discount_price && (
+              <Badge variant="destructive" className="text-xs">
+                -{Math.round(((product.price - product.discount_price) / product.price) * 100)}%
+              </Badge>
+            )}
           </div>
 
           {product.description && <p className="text-muted-foreground leading-relaxed">{product.description}</p>}
+
+          {/* Delivery estimation */}
+          {deliveryDays && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border/50">
+              <Truck className="h-4 w-4 text-primary" />
+              <span className="text-sm text-foreground">{t("product.delivery")}: <strong>{deliveryDays} {t("product.days")}</strong></span>
+            </div>
+          )}
 
           {/* Colors */}
           {colors.length > 0 && (
@@ -205,37 +210,19 @@ const ProductDetail = () => {
               <p className="text-sm font-medium text-foreground mb-2">{t("product.color") || "Color"}</p>
               <div className="flex flex-wrap gap-3">
                 {colors.map(c => {
-                  // Calculate available stock for this color (across all sizes or for selected size)
                   const colorStock = selectedSize
                     ? (variants.find(v => v.color_id === c.id && v.size_id === selectedSize)?.stock ?? 0)
                     : variants.filter(v => v.color_id === c.id).reduce((a: number, v: any) => a + v.stock, 0);
                   return (
-                    <button
-                      key={c.id}
-                      onClick={() => setSelectedColor(c.id)}
-                      disabled={colorStock <= 0}
-                      title={`${c.color_name} (${colorStock} in stock)`}
-                      className={`relative w-10 h-10 rounded-full border-2 transition-all ${
-                        selectedColor === c.id ? "border-primary ring-2 ring-primary/30 scale-110" :
-                        colorStock <= 0 ? "border-border opacity-40 cursor-not-allowed" :
-                        "border-border hover:border-primary"
-                      }`}
-                    >
+                    <button key={c.id} onClick={() => setSelectedColor(c.id)} disabled={colorStock <= 0} title={`${c.color_name} (${colorStock} in stock)`}
+                      className={`relative w-10 h-10 rounded-full border-2 transition-all ${selectedColor === c.id ? "border-primary ring-2 ring-primary/30 scale-110" : colorStock <= 0 ? "border-border opacity-40 cursor-not-allowed" : "border-border hover:border-primary"}`}>
                       <span className="block w-full h-full rounded-full" style={{ backgroundColor: c.color_hex }} />
-                      {colorStock <= 0 && (
-                        <span className="absolute inset-0 flex items-center justify-center">
-                          <span className="w-8 h-0.5 bg-destructive rotate-45 rounded-full" />
-                        </span>
-                      )}
+                      {colorStock <= 0 && <span className="absolute inset-0 flex items-center justify-center"><span className="w-8 h-0.5 bg-destructive rotate-45 rounded-full" /></span>}
                     </button>
                   );
                 })}
               </div>
-              {selectedColor && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {colors.find(c => c.id === selectedColor)?.color_name}
-                </p>
-              )}
+              {selectedColor && <p className="text-xs text-muted-foreground mt-1">{colors.find(c => c.id === selectedColor)?.color_name}</p>}
             </div>
           )}
 
@@ -249,16 +236,8 @@ const ProductDetail = () => {
                     ? (variants.find(v => v.size_id === s.id && v.color_id === selectedColor)?.stock ?? 0)
                     : variants.filter(v => v.size_id === s.id).reduce((a: number, v: any) => a + v.stock, 0);
                   return (
-                    <button
-                      key={s.id}
-                      onClick={() => setSelectedSize(s.id)}
-                      disabled={sizeStock <= 0}
-                      className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                        selectedSize === s.id ? "border-primary bg-primary/10 text-primary" :
-                        sizeStock <= 0 ? "border-border text-muted-foreground opacity-50 cursor-not-allowed" :
-                        "border-border text-foreground hover:border-primary"
-                      }`}
-                    >
+                    <button key={s.id} onClick={() => setSelectedSize(s.id)} disabled={sizeStock <= 0}
+                      className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${selectedSize === s.id ? "border-primary bg-primary/10 text-primary" : sizeStock <= 0 ? "border-border text-muted-foreground opacity-50 cursor-not-allowed" : "border-border text-foreground hover:border-primary"}`}>
                       {s.size_label}
                       {sizeStock <= 0 && <span className="block text-xs">{t("product.outOfStock")}</span>}
                     </button>
@@ -286,6 +265,9 @@ const ProductDetail = () => {
             <Button variant="outline" size="icon" className="h-12 w-12" onClick={toggleFav}>
               <Heart className={`h-5 w-5 ${isFav ? "fill-destructive text-destructive" : ""}`} />
             </Button>
+            <Button variant="outline" size="icon" className="h-12 w-12" onClick={() => isInCompare(id!) ? removeFromCompare(id!) : addToCompare(id!)}>
+              <GitCompareArrows className={`h-5 w-5 ${isInCompare(id!) ? "text-primary" : ""}`} />
+            </Button>
           </div>
         </div>
       </motion.div>
@@ -296,18 +278,13 @@ const ProductDetail = () => {
           <h2 className="text-xl font-bold text-foreground">{t("reviews.title")}</h2>
           {reviews.length > 0 && (
             <div className="flex items-center gap-2">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map(s => (
-                  <Star key={s} className={`h-4 w-4 ${s <= Math.round(avgRating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
-                ))}
-              </div>
+              <div className="flex">{[1, 2, 3, 4, 5].map(s => <Star key={s} className={`h-4 w-4 ${s <= Math.round(avgRating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}</div>
               <span className="text-sm font-medium text-foreground">{avgRating.toFixed(1)}</span>
               <span className="text-sm text-muted-foreground">({reviews.length})</span>
             </div>
           )}
         </div>
 
-        {/* Review Form */}
         {user && (
           <div className="mb-8 p-4 rounded-xl border border-border bg-muted/20">
             <p className="text-sm font-medium text-foreground mb-3">{t("reviews.writeReview")}</p>
@@ -318,13 +295,7 @@ const ProductDetail = () => {
                 </button>
               ))}
             </div>
-            <Textarea
-              value={reviewComment}
-              onChange={e => setReviewComment(e.target.value)}
-              placeholder={t("reviews.placeholder")}
-              className="mb-3 resize-none"
-              rows={3}
-            />
+            <Textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} placeholder={t("reviews.placeholder")} className="mb-3 resize-none" rows={3} />
             <Button onClick={submitReview} disabled={submittingReview} size="sm">
               {submittingReview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
               {t("reviews.submit")}
@@ -332,7 +303,6 @@ const ProductDetail = () => {
           </div>
         )}
 
-        {/* Review List */}
         {reviews.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">{t("reviews.noReviews")}</p>
         ) : (
@@ -349,11 +319,7 @@ const ProductDetail = () => {
                     <p className="text-sm font-medium text-foreground">{r.profiles?.name || r.profiles?.email || "Customer"}</p>
                     <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
                   </div>
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star key={s} className={`h-3.5 w-3.5 ${s <= (r.rating || 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
-                    ))}
-                  </div>
+                  <div className="flex">{[1, 2, 3, 4, 5].map(s => <Star key={s} className={`h-3.5 w-3.5 ${s <= (r.rating || 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}</div>
                 </div>
                 {r.comment && <p className="text-sm text-muted-foreground leading-relaxed">{r.comment}</p>}
               </div>
@@ -362,14 +328,15 @@ const ProductDetail = () => {
         )}
       </div>
 
+      {/* Q&A Section */}
+      <ProductQA productId={id!} />
+
       {/* Related Products */}
       {related.length > 0 && (
         <div className="mt-16">
           <h2 className="text-xl font-bold text-foreground mb-6">{t("product.related")}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {related.map((p, i) => (
-              <ProductCard key={p.id} product={p} index={i} />
-            ))}
+            {related.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
           </div>
         </div>
       )}

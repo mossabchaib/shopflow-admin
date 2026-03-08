@@ -10,9 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Loader2, Package, MapPin, User, Save, Plus, Trash2, Star } from "lucide-react";
+import { Loader2, Package, MapPin, User, Save, Plus, Trash2, Star, RotateCcw, Gift } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { OrderTracking } from "@/components/OrderTracking";
 
 const statusColors: Record<string, string> = {
   pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
@@ -29,46 +29,37 @@ export default function Account() {
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<any[]>([]);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [saving, setSaving] = useState(false);
-
-  // Profile form
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-
-  // Address form
   const [showAddressForm, setShowAddressForm] = useState(false);
-  const [addrForm, setAddrForm] = useState({
-    full_name: "", phone: "", street: "", city: "", state: "", postal_code: "", country: "",
-  });
+  const [addrForm, setAddrForm] = useState({ full_name: "", phone: "", street: "", city: "", state: "", postal_code: "", country: "" });
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchAll();
-  }, [user]);
+  useEffect(() => { if (user) fetchAll(); }, [user]);
 
   async function fetchAll() {
     setLoading(true);
-    const [profileRes, ordersRes, addrRes] = await Promise.all([
+    const [profileRes, ordersRes, addrRes, pointsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", user!.id).maybeSingle(),
       supabase.from("orders").select("*, order_items(*, products(name, product_images(image_url, is_primary)))").eq("customer_id", user!.id).order("created_at", { ascending: false }),
       supabase.from("addresses").select("*").eq("user_id", user!.id).order("is_default", { ascending: false }),
+      supabase.from("loyalty_points").select("points").eq("user_id", user!.id).maybeSingle(),
     ]);
-
     setProfile(profileRes.data);
     setName(profileRes.data?.name || "");
     setPhone(profileRes.data?.phone || "");
     setOrders(ordersRes.data || []);
     setAddresses(addrRes.data || []);
+    setLoyaltyPoints(pointsRes.data?.points || 0);
     setLoading(false);
   }
 
   async function saveProfile() {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ name, phone })
-      .eq("user_id", user.id);
+    const { error } = await supabase.from("profiles").update({ name, phone }).eq("user_id", user.id);
     if (error) toast.error("Failed to save");
     else toast.success(t("account.saved"));
     setSaving(false);
@@ -77,11 +68,7 @@ export default function Account() {
   async function addAddress() {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("addresses").insert({
-      ...addrForm,
-      user_id: user.id,
-      is_default: addresses.length === 0,
-    });
+    const { error } = await supabase.from("addresses").insert({ ...addrForm, user_id: user.id, is_default: addresses.length === 0 });
     if (error) toast.error("Failed to add address");
     else {
       toast.success(t("account.addressAdded"));
@@ -116,9 +103,17 @@ export default function Account() {
               {(name || user?.email)?.[0]?.toUpperCase() || "?"}
             </AvatarFallback>
           </Avatar>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">{name || user?.email}</h1>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
+          </div>
+          {/* Loyalty Points */}
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <Gift className="h-5 w-5 text-amber-500" />
+            <div>
+              <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{loyaltyPoints}</p>
+              <p className="text-xs text-muted-foreground">{t("loyalty.points")}</p>
+            </div>
           </div>
         </div>
 
@@ -129,7 +124,7 @@ export default function Account() {
             <TabsTrigger value="profile" className="gap-2"><User className="h-4 w-4" />{t("account.profile")}</TabsTrigger>
           </TabsList>
 
-          {/* ── Orders Tab ── */}
+          {/* Orders Tab */}
           <TabsContent value="orders">
             {orders.length === 0 ? (
               <Card>
@@ -143,56 +138,48 @@ export default function Account() {
               <div className="space-y-4">
                 {orders.map((order) => (
                   <Card key={order.id} className="overflow-hidden">
-                    <CardHeader className="pb-3">
+                    <CardHeader className="pb-3 cursor-pointer" onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}>
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-3">
                           <CardTitle className="text-sm font-mono">#{order.id.slice(0, 8)}</CardTitle>
-                          <Badge variant="secondary" className={statusColors[order.status] || ""}>
-                            {order.status}
-                          </Badge>
+                          <Badge variant="secondary" className={statusColors[order.status] || ""}>{order.status}</Badge>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(order.created_at).toLocaleDateString()}
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-foreground">${Number(order.total).toFixed(2)}</span>
+                          <span className="text-sm text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {(order.order_items || []).map((item: any) => {
-                          const img = item.products?.product_images?.find((i: any) => i.is_primary)?.image_url
-                            || item.products?.product_images?.[0]?.image_url;
-                          return (
-                            <div key={item.id} className="flex items-center gap-3">
-                              {img ? (
-                                <img src={img} alt="" className="h-12 w-12 rounded-lg object-cover" />
-                              ) : (
-                                <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
-                                  <Package className="h-5 w-5 text-muted-foreground" />
+
+                    {expandedOrder === order.id && (
+                      <CardContent>
+                        {/* Order Tracking Timeline */}
+                        <OrderTracking orderId={order.id} currentStatus={order.status} />
+
+                        <div className="space-y-3 mt-4">
+                          {(order.order_items || []).map((item: any) => {
+                            const img = item.products?.product_images?.find((i: any) => i.is_primary)?.image_url || item.products?.product_images?.[0]?.image_url;
+                            return (
+                              <div key={item.id} className="flex items-center gap-3">
+                                {img ? <img src={img} alt="" className="h-12 w-12 rounded-lg object-cover" /> : <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center"><Package className="h-5 w-5 text-muted-foreground" /></div>}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">{item.products?.name || "Product"}</p>
+                                  <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                                 </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-foreground truncate">{item.products?.name || "Product"}</p>
-                                <p className="text-xs text-muted-foreground">x{item.quantity}</p>
+                                <p className="text-sm font-semibold text-success">${Number(item.total_price).toFixed(2)}</p>
                               </div>
-                              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                                ${Number(item.total_price).toFixed(2)}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">{t("account.total")}</span>
-                        <span className="font-bold text-foreground">${Number(order.total).toFixed(2)}</span>
-                      </div>
-                    </CardContent>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    )}
                   </Card>
                 ))}
               </div>
             )}
           </TabsContent>
 
-          {/* ── Addresses Tab ── */}
+          {/* Addresses Tab */}
           <TabsContent value="addresses">
             <div className="space-y-4">
               {addresses.map((addr) => (
@@ -205,25 +192,16 @@ export default function Account() {
                           {addr.is_default && <Badge variant="secondary" className="text-xs">{t("account.default")}</Badge>}
                         </div>
                         <p className="text-sm text-muted-foreground">{addr.phone}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {[addr.street, addr.city, addr.state, addr.postal_code, addr.country].filter(Boolean).join(", ")}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{[addr.street, addr.city, addr.state, addr.postal_code, addr.country].filter(Boolean).join(", ")}</p>
                       </div>
                       <div className="flex gap-1">
-                        {!addr.is_default && (
-                          <Button size="sm" variant="outline" onClick={() => setDefaultAddress(addr.id)}>
-                            <Star className="h-3 w-3 mr-1" />{t("account.setDefault")}
-                          </Button>
-                        )}
-                        <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => deleteAddress(addr.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {!addr.is_default && <Button size="sm" variant="outline" onClick={() => setDefaultAddress(addr.id)}><Star className="h-3 w-3 mr-1" />{t("account.setDefault")}</Button>}
+                        <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => deleteAddress(addr.id)}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
-
               {showAddressForm ? (
                 <Card>
                   <CardHeader><CardTitle className="text-base">{t("account.newAddress")}</CardTitle></CardHeader>
@@ -244,31 +222,20 @@ export default function Account() {
                   </CardContent>
                 </Card>
               ) : (
-                <Button variant="outline" onClick={() => setShowAddressForm(true)} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />{t("account.addAddress")}
-                </Button>
+                <Button variant="outline" onClick={() => setShowAddressForm(true)} className="w-full"><Plus className="h-4 w-4 mr-2" />{t("account.addAddress")}</Button>
               )}
             </div>
           </TabsContent>
 
-          {/* ── Profile Tab ── */}
+          {/* Profile Tab */}
           <TabsContent value="profile">
             <Card>
               <CardHeader><CardTitle className="text-base">{t("account.personalInfo")}</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
-                  <div className="sm:col-span-2">
-                    <Label>{t("account.email")}</Label>
-                    <Input value={user?.email || ""} disabled className="bg-muted/40" />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Label>{t("account.name")}</Label>
-                    <Input value={name} onChange={e => setName(e.target.value)} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Label>{t("checkout.phone")}</Label>
-                    <Input value={phone} onChange={e => setPhone(e.target.value)} />
-                  </div>
+                  <div className="sm:col-span-2"><Label>{t("account.email")}</Label><Input value={user?.email || ""} disabled className="bg-muted/40" /></div>
+                  <div className="sm:col-span-2"><Label>{t("account.name")}</Label><Input value={name} onChange={e => setName(e.target.value)} /></div>
+                  <div className="sm:col-span-2"><Label>{t("checkout.phone")}</Label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
                 </div>
                 <Button className="mt-4" onClick={saveProfile} disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
