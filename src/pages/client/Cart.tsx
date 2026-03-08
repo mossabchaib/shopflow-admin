@@ -76,8 +76,10 @@ const Cart = () => {
   }, [user]);
 
   // Fetch product details for guest cart items
+  const guestItemIds = guestCart.items.map(i => i.product_id).sort().join(",");
   useEffect(() => {
-    if (user || guestCart.items.length === 0) { if (!user) setLoading(false); return; }
+    if (user) return;
+    if (guestCart.items.length === 0) { setGuestProducts([]); setLoading(false); return; }
     const fetchGuestProducts = async () => {
       const ids = guestCart.items.map(i => i.product_id);
       const { data } = await supabase
@@ -88,7 +90,7 @@ const Cart = () => {
       setLoading(false);
     };
     fetchGuestProducts();
-  }, [user, guestCart.items]);
+  }, [user, guestItemIds]);
 
   const getImage = (p: any) => {
     const primary = p?.product_images?.find((i: any) => i.is_primary);
