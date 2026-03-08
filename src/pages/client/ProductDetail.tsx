@@ -112,23 +112,59 @@ const ProductDetail = () => {
     fetchAll();
   }, [id, user]);
 
+  const handleReviewImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).slice(0, 4 - reviewImages.length);
+    setReviewImages(prev => [...prev, ...files]);
+    files.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = (ev) => setReviewImagePreviews(prev => [...prev, ev.target?.result as string]);
+      reader.readAsDataURL(f);
+    });
+  };
+
+  const removeReviewImage = (idx: number) => {
+    setReviewImages(prev => prev.filter((_, i) => i !== idx));
+    setReviewImagePreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const submitReview = async () => {
     if (!user) { toast({ title: t("common.pleaseSignIn"), variant: "destructive" }); return; }
     setSubmittingReview(true);
-    const { error } = await supabase.from("reviews").insert({ product_id: id!, customer_id: user.id, rating: reviewRating, comment: reviewComment.trim() || null });
-    if (error) toast({ title: t("common.error"), description: error.message, variant: "destructive" });
-    else {
-      toast({ title: t("reviews.submitted") });
-      setReviewComment("");
-      setReviewRating(5);
-      const { data: revs2 } = await supabase.from("reviews").select("*").eq("product_id", id!).eq("status", "approved").order("created_at", { ascending: false });
-      if (revs2 && revs2.length > 0) {
-        const cIds = [...new Set(revs2.map((r: any) => r.customer_id).filter(Boolean))];
-        const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", cIds);
-        const pm = new Map((profs || []).map((p: any) => [p.user_id, p]));
-        setReviews(revs2.map((r: any) => ({ ...r, profiles: pm.get(r.customer_id) || null })));
-      } else { setReviews([]); }
+    const { data: newReview, error } = await supabase.from("reviews").insert({ product_id: id!, customer_id: user.id, rating: reviewRating, comment: reviewComment.trim() || null }).select().single();
+    if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); setSubmittingReview(false); return; }
+
+    // Upload images
+    if (reviewImages.length > 0 && newReview) {
+      for (const file of reviewImages) {
+        const ext = file.name.split(".").pop();
+        const path = `${user.id}/${newReview.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("review-images").upload(path, file);
+        if (!upErr) {
+          const { data: urlData } = supabase.storage.from("review-images").getPublicUrl(path);
+          await supabase.from("review_images").insert({ review_id: newReview.id, image_url: urlData.publicUrl });
+        }
+      }
     }
+
+    toast({ title: t("reviews.submitted") });
+    setReviewComment("");
+    setReviewRating(5);
+    setReviewImages([]);
+    setReviewImagePreviews([]);
+
+    // Refresh reviews
+    const { data: revs2 } = await supabase.from("reviews").select("*").eq("product_id", id!).eq("status", "approved").order("created_at", { ascending: false });
+    if (revs2 && revs2.length > 0) {
+      const cIds = [...new Set(revs2.map((r: any) => r.customer_id).filter(Boolean))];
+      const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", cIds);
+      const pm = new Map((profs || []).map((p: any) => [p.user_id, p]));
+      setReviews(revs2.map((r: any) => ({ ...r, profiles: pm.get(r.customer_id) || null })));
+      const rIds = revs2.map((r: any) => r.id);
+      const { data: rImgs } = await supabase.from("review_images").select("review_id, image_url").in("review_id", rIds);
+      const imgM: Record<string, string[]> = {};
+      (rImgs || []).forEach((ri: any) => { if (!imgM[ri.review_id]) imgM[ri.review_id] = []; imgM[ri.review_id].push(ri.image_url); });
+      setReviewImagesMap(imgM);
+    } else { setReviews([]); }
     setSubmittingReview(false);
   };
 
