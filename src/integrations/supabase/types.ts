@@ -248,6 +248,36 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_preferences: {
+        Row: {
+          age_range: string | null
+          created_at: string | null
+          gender: string | null
+          id: string
+          interests: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          age_range?: string | null
+          created_at?: string | null
+          gender?: string | null
+          id?: string
+          interests?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          age_range?: string | null
+          created_at?: string | null
+          gender?: string | null
+          id?: string
+          interests?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           created_at: string | null
