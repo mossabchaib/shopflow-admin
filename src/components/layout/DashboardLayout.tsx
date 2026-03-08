@@ -78,7 +78,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className={`min-h-screen flex w-full ${isRtl ? "flex-row-reverse" : ""}`}>
+      <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen flex w-full">
         <AppSidebar side={isRtl ? "right" : "left"} />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-16 flex items-center justify-between border-b bg-card px-4 lg:px-6 sticky top-0 z-10">
