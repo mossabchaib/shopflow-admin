@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useStore";
@@ -86,12 +86,21 @@ export default function Chat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
 
+  // Preview state (image/file before sending)
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   // Voice recording
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Voice preview (after recording, before sending)
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [voicePreviewUrl, setVoicePreviewUrl] = useState<string | null>(null);
+  const [voiceDuration, setVoiceDuration] = useState(0);
 
   // Audio playback
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -234,33 +243,48 @@ export default function Chat() {
     setSending(false);
   }
 
-  // File upload
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  // File selected → show preview
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !activeConv || !user) return;
+    if (!file) return;
     if (file.size > 20 * 1024 * 1024) { toast.error("File too large (max 20MB)"); return; }
+    setPreviewFile(file);
+    if (file.type.startsWith("image/")) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPreviewUrl(null);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
+  function cancelPreview() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewFile(null);
+    setPreviewUrl(null);
+  }
+
+  async function sendFileFromPreview() {
+    if (!previewFile || !activeConv || !user) return;
     setUploadingFile(true);
-    const ext = file.name.split(".").pop();
+    const ext = previewFile.name.split(".").pop();
     const path = `${activeConv.id}/${Date.now()}.${ext}`;
 
-    const { error: upErr } = await supabase.storage.from("chat-files").upload(path, file);
+    const { error: upErr } = await supabase.storage.from("chat-files").upload(path, previewFile);
     if (upErr) { toast.error("Upload failed"); setUploadingFile(false); return; }
 
     const { data: urlData } = supabase.storage.from("chat-files").getPublicUrl(path);
 
     let msgType = "file";
-    if (file.type.startsWith("image/")) msgType = "image";
-    else if (file.type.startsWith("audio/")) msgType = "voice";
+    if (previewFile.type.startsWith("image/")) msgType = "image";
 
     const { error } = await supabase.from("chat_messages").insert({
       conversation_id: activeConv.id,
       sender_id: user.id,
-      content: file.name,
+      content: previewFile.name,
       message_type: msgType,
       file_url: urlData.publicUrl,
-      file_name: file.name,
-      file_type: file.type,
+      file_name: previewFile.name,
+      file_type: previewFile.type,
     });
 
     if (error) toast.error("Failed to send file");
@@ -268,8 +292,8 @@ export default function Chat() {
       await supabase.from("chat_conversations").update({ updated_at: new Date().toISOString() }).eq("id", activeConv.id);
       fetchConversations();
     }
+    cancelPreview();
     setUploadingFile(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   // Voice recording
@@ -284,10 +308,13 @@ export default function Chat() {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        await uploadVoice(blob);
+        // Show preview instead of sending
+        setVoiceBlob(blob);
+        setVoicePreviewUrl(URL.createObjectURL(blob));
+        setVoiceDuration(recordingDuration);
       };
 
       mediaRecorder.start();
@@ -310,12 +337,19 @@ export default function Chat() {
     }
   }
 
-  async function uploadVoice(blob: Blob) {
-    if (!activeConv || !user) return;
+  function cancelVoicePreview() {
+    if (voicePreviewUrl) URL.revokeObjectURL(voicePreviewUrl);
+    setVoiceBlob(null);
+    setVoicePreviewUrl(null);
+    setVoiceDuration(0);
+  }
+
+  async function sendVoiceFromPreview() {
+    if (!voiceBlob || !activeConv || !user) return;
     setSending(true);
     const path = `${activeConv.id}/voice_${Date.now()}.webm`;
 
-    const { error: upErr } = await supabase.storage.from("chat-files").upload(path, blob);
+    const { error: upErr } = await supabase.storage.from("chat-files").upload(path, voiceBlob);
     if (upErr) { toast.error("Upload failed"); setSending(false); return; }
 
     const { data: urlData } = supabase.storage.from("chat-files").getPublicUrl(path);
@@ -328,7 +362,7 @@ export default function Chat() {
       file_url: urlData.publicUrl,
       file_name: "voice.webm",
       file_type: "audio/webm",
-      duration: recordingDuration,
+      duration: voiceDuration,
     });
 
     if (error) toast.error("Failed to send voice");
@@ -336,8 +370,8 @@ export default function Chat() {
       await supabase.from("chat_conversations").update({ updated_at: new Date().toISOString() }).eq("id", activeConv.id);
       fetchConversations();
     }
+    cancelVoicePreview();
     setSending(false);
-    setRecordingDuration(0);
   }
 
   // Audio playback
@@ -643,6 +677,7 @@ export default function Chat() {
             {/* Input Area */}
             <div className="px-6 py-4 border-t border-border/50 bg-card/80 backdrop-blur-sm">
               <AnimatePresence>
+                {/* Recording indicator */}
                 {isRecording && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
@@ -660,62 +695,133 @@ export default function Chat() {
                     </Button>
                   </motion.div>
                 )}
+
+                {/* Image/File preview */}
+                {previewFile && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="mb-3 rounded-xl border border-border bg-muted/40 p-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      {previewUrl ? (
+                        <img src={previewUrl} alt="preview" className="h-32 w-32 object-cover rounded-lg" />
+                      ) : (
+                        <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
+                          {getFileIcon(previewFile.type)}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{previewFile.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {(previewFile.size / 1024).toFixed(1)} KB • {previewFile.type.split("/")[1]?.toUpperCase() || "FILE"}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="icon" variant="ghost" onClick={cancelPreview} className="rounded-full h-8 w-8">
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" onClick={sendFileFromPreview} disabled={uploadingFile} className="rounded-full h-8 w-8">
+                          {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Voice preview */}
+                {voiceBlob && voicePreviewUrl && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="mb-3 rounded-xl border border-border bg-muted/40 p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => togglePlay("voice-preview", voicePreviewUrl)}
+                        className="h-10 w-10 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center flex-shrink-0 transition-colors"
+                      >
+                        {playingId === "voice-preview"
+                          ? <Pause className="h-4 w-4 text-primary" />
+                          : <Play className="h-4 w-4 text-primary ml-0.5" />
+                        }
+                      </button>
+                      <div className="flex-1">
+                        <div className="flex gap-[2px] items-end h-6">
+                          {Array.from({ length: 30 }).map((_, i) => (
+                            <div key={i} className="w-1 rounded-full bg-primary/30" style={{ height: `${Math.random() * 16 + 6}px` }} />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          🎤 {formatDuration(voiceDuration)}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="icon" variant="ghost" onClick={cancelVoicePreview} className="rounded-full h-8 w-8">
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" onClick={sendVoiceFromPreview} disabled={sending} className="rounded-full h-8 w-8">
+                          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </AnimatePresence>
 
-              <div className="flex items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="rounded-full h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingFile || isRecording}
-                >
-                  {uploadingFile ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
-                </Button>
-
-                <form
-                  onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
-                  className="flex-1 flex items-center gap-2 bg-muted/60 rounded-full px-4 py-1 border border-border/50 focus-within:border-primary/30 focus-within:ring-1 focus-within:ring-primary/20 transition-all"
-                >
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder={t("chat.typeMessage")}
-                    className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 h-10"
-                    disabled={sending || isRecording}
+              {!previewFile && !voiceBlob && (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
                   />
-                </form>
-
-                {newMessage.trim() ? (
-                  <Button
-                    onClick={sendMessage}
-                    size="icon"
-                    className="rounded-full h-10 w-10 shadow-lg"
-                    disabled={sending}
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                ) : (
                   <Button
                     type="button"
                     size="icon"
-                    variant={isRecording ? "destructive" : "default"}
-                    className="rounded-full h-10 w-10 shadow-lg"
-                    onClick={isRecording ? stopRecording : startRecording}
-                    disabled={uploadingFile}
+                    variant="ghost"
+                    className="rounded-full h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingFile || isRecording}
                   >
-                    {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    <Paperclip className="h-5 w-5" />
                   </Button>
-                )}
-              </div>
+
+                  <form
+                    onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+                    className="flex-1 flex items-center gap-2 bg-muted/60 rounded-full px-4 py-1 border border-border/50 focus-within:border-primary/30 focus-within:ring-1 focus-within:ring-primary/20 transition-all"
+                  >
+                    <Input
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder={t("chat.typeMessage")}
+                      className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 h-10"
+                      disabled={sending || isRecording}
+                    />
+                  </form>
+
+                  {newMessage.trim() ? (
+                    <Button onClick={sendMessage} size="icon" className="rounded-full h-10 w-10 shadow-lg" disabled={sending}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={isRecording ? "destructive" : "default"}
+                      className="rounded-full h-10 w-10 shadow-lg"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={uploadingFile}
+                    >
+                      {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </>
         ) : (
