@@ -48,7 +48,7 @@ const ProductDetail = () => {
     const fetchAll = async () => {
       setLoading(true);
       const [prodRes, imgRes, sizeRes, colorRes, varRes] = await Promise.all([
-        supabase.from("products").select("*, categories(id, name), stores(estimated_delivery_days)").eq("id", id).single(),
+        supabase.from("products").select("*, categories(id, name), stores(id, store_name, slug, logo_url, estimated_delivery_days)").eq("id", id).single(),
         supabase.from("product_images").select("*").eq("product_id", id).order("sort_order"),
         supabase.from("product_sizes").select("*").eq("product_id", id).order("size_label"),
         supabase.from("product_colors").select("*").eq("product_id", id).order("color_name"),
