@@ -115,8 +115,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     ) : (
                       notifications.map((n) => (
                         <div key={n.id} className="flex items-start gap-3 p-3 border-b last:border-0 hover:bg-muted/50 transition-colors">
-                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${n.type === "order" ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning"}`}>
-                            {n.type === "order" ? <ShoppingCart className="h-4 w-4" /> : <Package className="h-4 w-4" />}
+                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${n.type === "order" ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary"}`}>
+                            {n.type === "order" ? <Store className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium">{n.message}</p>
