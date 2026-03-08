@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Trash2, Minus, Plus, Loader2, ShoppingCart } from "lucide-react";
@@ -20,46 +20,66 @@ const Cart = () => {
   const [dbItems, setDbItems] = useState<any[]>([]);
   const [guestProducts, setGuestProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const mergedRef = useRef(false);
 
-  // Merge guest cart into DB on login
+  // Merge guest cart into DB on login (once)
   useEffect(() => {
-    if (!user) return;
+    if (!user || mergedRef.current) return;
+    mergedRef.current = true;
     const mergeGuestCart = async () => {
       const guestItems = getGuestCartItems();
       if (guestItems.length === 0) return;
       for (const item of guestItems) {
-        await supabase.from("cart_items").insert({
-          user_id: user.id,
-          product_id: item.product_id,
-          size_id: item.size_id,
-          color_id: (item as any).color_id || null,
-          quantity: item.quantity,
-        });
+        // Check if item already exists in DB cart
+        const { data: existing } = await supabase
+          .from("cart_items")
+          .select("id, quantity")
+          .eq("user_id", user.id)
+          .eq("product_id", item.product_id)
+          .eq("size_id", item.size_id || "")
+          .maybeSingle();
+
+        if (existing) {
+          await supabase.from("cart_items").update({ quantity: existing.quantity + item.quantity }).eq("id", existing.id);
+        } else {
+          await supabase.from("cart_items").insert({
+            user_id: user.id,
+            product_id: item.product_id,
+            size_id: item.size_id,
+            color_id: item.color_id || null,
+            quantity: item.quantity,
+          });
+        }
       }
       clearGuestCart();
       queryClient.invalidateQueries({ queryKey: ["cart-count"] });
+      // Re-fetch DB cart after merge
+      fetchDbCart();
     };
     mergeGuestCart();
   }, [user]);
 
+  const fetchDbCart = async () => {
+    if (!user) { setLoading(false); return; }
+    const { data } = await supabase
+      .from("cart_items")
+      .select("*, products(id, name, price, discount_price, product_images(image_url, is_primary)), product_sizes(size_label, extra_price), product_colors(color_name, color_hex)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    setDbItems(data || []);
+    setLoading(false);
+  };
+
   // Fetch DB cart for logged-in users
   useEffect(() => {
-    const fetchDbCart = async () => {
-      if (!user) { setLoading(false); return; }
-      const { data } = await supabase
-        .from("cart_items")
-        .select("*, products(id, name, price, discount_price, product_images(image_url, is_primary)), product_sizes(size_label, extra_price), product_colors(color_name, color_hex)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      setDbItems(data || []);
-      setLoading(false);
-    };
     fetchDbCart();
   }, [user]);
 
   // Fetch product details for guest cart items
+  const guestItemIds = guestCart.items.map(i => i.product_id).sort().join(",");
   useEffect(() => {
-    if (user || guestCart.items.length === 0) { if (!user) setLoading(false); return; }
+    if (user) return;
+    if (guestCart.items.length === 0) { setGuestProducts([]); setLoading(false); return; }
     const fetchGuestProducts = async () => {
       const ids = guestCart.items.map(i => i.product_id);
       const { data } = await supabase
@@ -70,14 +90,13 @@ const Cart = () => {
       setLoading(false);
     };
     fetchGuestProducts();
-  }, [user, guestCart.items]);
+  }, [user, guestItemIds]);
 
   const getImage = (p: any) => {
     const primary = p?.product_images?.find((i: any) => i.is_primary);
     return primary?.image_url || p?.product_images?.[0]?.image_url || "/placeholder.svg";
   };
 
-  // For logged-in users
   const updateDbQty = async (id: string, qty: number) => {
     if (qty < 1) return;
     await supabase.from("cart_items").update({ quantity: qty }).eq("id", id);
@@ -96,7 +115,6 @@ const Cart = () => {
     return (base + extra) * item.quantity;
   };
 
-  // For guests
   const getGuestItemPrice = (gItem: any) => {
     const prod = guestProducts.find(p => p.id === gItem.product_id);
     if (!prod) return 0;
@@ -159,7 +177,7 @@ const Cart = () => {
                   <div className="flex-1 min-w-0">
                     <Link to={`/product/${item.products?.id}`} className="font-medium text-foreground hover:text-primary truncate block">{item.products?.name}</Link>
                     {item.product_sizes && <p className="text-xs text-muted-foreground">{t("product.size")}: {item.product_sizes.size_label}</p>}
-                    {(item as any).product_colors && <p className="text-xs text-muted-foreground flex items-center gap-1">Color: <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: (item as any).product_colors.color_hex }} /> {(item as any).product_colors.color_name}</p>}
+                    {item.product_colors && <p className="text-xs text-muted-foreground flex items-center gap-1">Color: <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: item.product_colors.color_hex }} /> {item.product_colors.color_name}</p>}
                     <p className="text-sm font-bold text-success mt-1">${getDbItemPrice(item).toFixed(2)}</p>
                   </div>
                   <div className="flex items-center gap-2">

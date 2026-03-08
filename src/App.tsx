@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { I18nProvider } from "@/lib/i18n";
+import { ThemeProvider } from "next-themes";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ClientLayout } from "@/components/layout/ClientLayout";
 import Dashboard from "./pages/Dashboard";
@@ -57,7 +58,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
+
+  const { data: isAdmin, isLoading: roleLoading } = useQuery({
+    queryKey: ["is-admin-auth-route", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+      return !!data;
+    },
+    enabled: !!user,
+  });
+
+  if (loading || (user && roleLoading)) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
+  if (user && isAdmin) return <Navigate to="/admin" replace />;
   if (user) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -66,36 +79,38 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <I18nProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-              <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={<AuthRoute><ClientLayout><Auth /></ClientLayout></AuthRoute>} />
+                <Route path="/register" element={<AuthRoute><ClientLayout><Register /></ClientLayout></AuthRoute>} />
 
-              {/* Admin routes */}
-              <Route path="/admin" element={<AdminRoute><DashboardLayout><Dashboard /></DashboardLayout></AdminRoute>} />
-              <Route path="/admin/products" element={<AdminRoute><DashboardLayout><Products /></DashboardLayout></AdminRoute>} />
-              <Route path="/admin/orders" element={<AdminRoute><DashboardLayout><Orders /></DashboardLayout></AdminRoute>} />
-              <Route path="/admin/customers" element={<AdminRoute><DashboardLayout><Customers /></DashboardLayout></AdminRoute>} />
-              <Route path="/admin/categories" element={<AdminRoute><DashboardLayout><Categories /></DashboardLayout></AdminRoute>} />
-              <Route path="/admin/analytics" element={<AdminRoute><DashboardLayout><Analytics /></DashboardLayout></AdminRoute>} />
-              <Route path="/admin/discounts" element={<AdminRoute><DashboardLayout><Discounts /></DashboardLayout></AdminRoute>} />
-              <Route path="/admin/suppliers" element={<AdminRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminRoute>} />
+                {/* Admin routes */}
+                <Route path="/admin" element={<AdminRoute><DashboardLayout><Dashboard /></DashboardLayout></AdminRoute>} />
+                <Route path="/admin/products" element={<AdminRoute><DashboardLayout><Products /></DashboardLayout></AdminRoute>} />
+                <Route path="/admin/orders" element={<AdminRoute><DashboardLayout><Orders /></DashboardLayout></AdminRoute>} />
+                <Route path="/admin/customers" element={<AdminRoute><DashboardLayout><Customers /></DashboardLayout></AdminRoute>} />
+                <Route path="/admin/categories" element={<AdminRoute><DashboardLayout><Categories /></DashboardLayout></AdminRoute>} />
+                <Route path="/admin/analytics" element={<AdminRoute><DashboardLayout><Analytics /></DashboardLayout></AdminRoute>} />
+                <Route path="/admin/discounts" element={<AdminRoute><DashboardLayout><Discounts /></DashboardLayout></AdminRoute>} />
+                <Route path="/admin/suppliers" element={<AdminRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminRoute>} />
 
-              {/* Client routes */}
-              <Route path="/" element={<ClientLayout><Home /></ClientLayout>} />
-              <Route path="/shop" element={<ClientLayout><Shop /></ClientLayout>} />
-              <Route path="/product/:id" element={<ClientLayout><ProductDetail /></ClientLayout>} />
-              <Route path="/cart" element={<ClientLayout><Cart /></ClientLayout>} />
-              <Route path="/checkout" element={<ClientLayout><Checkout /></ClientLayout>} />
-              <Route path="/favorites" element={<ProtectedRoute><ClientLayout><Favorites /></ClientLayout></ProtectedRoute>} />
+                {/* Client routes */}
+                <Route path="/" element={<ClientLayout><Home /></ClientLayout>} />
+                <Route path="/shop" element={<ClientLayout><Shop /></ClientLayout>} />
+                <Route path="/product/:id" element={<ClientLayout><ProductDetail /></ClientLayout>} />
+                <Route path="/cart" element={<ClientLayout><Cart /></ClientLayout>} />
+                <Route path="/checkout" element={<ClientLayout><Checkout /></ClientLayout>} />
+                <Route path="/favorites" element={<ProtectedRoute><ClientLayout><Favorites /></ClientLayout></ProtectedRoute>} />
 
-              <Route path="*" element={<ClientLayout><NotFound /></ClientLayout>} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+                <Route path="*" element={<ClientLayout><NotFound /></ClientLayout>} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ThemeProvider>
       </I18nProvider>
     </AuthProvider>
   </QueryClientProvider>

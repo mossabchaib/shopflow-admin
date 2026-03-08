@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 
@@ -15,7 +15,6 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { t } = useI18n();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,17 +41,9 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="flex items-center justify-center py-16 px-4">
       <div className="w-full max-w-md">
-        <div className="flex flex-col items-center mb-8">
-          <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center mb-4">
-            <Store className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">StoreAdmin</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("auth.ecommerce")}</p>
-        </div>
-
-        <div className="dashboard-card p-6">
+        <div className="rounded-xl border bg-card p-6">
           <h2 className="text-lg font-semibold text-foreground mb-6">{t("auth.signup")}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
