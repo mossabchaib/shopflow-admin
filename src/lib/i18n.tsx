@@ -115,6 +115,14 @@ const translations: Record<Lang, Record<string, string>> = {
     "sidebar.suppliers": "Suppliers",
     "sidebar.analytics": "Analytics",
     "sidebar.discounts": "Discounts",
+    "sidebar.chat": "Chat",
+    "chat.title": "Messages",
+    "chat.noConversations": "No conversations yet",
+    "chat.startChat": "Start Chat",
+    "chat.typeMessage": "Type a message...",
+    "chat.send": "Send",
+    "chat.selectConversation": "Select a conversation to start messaging",
+    "chat.with": "Chat with",
     "sidebar.ecommerceDashboard": "eCommerce Dashboard",
 
     // Products page
