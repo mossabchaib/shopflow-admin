@@ -47,8 +47,8 @@ const Categories = () => {
 
   useEffect(() => { fetchCategories(); }, []);
 
-  const openCreate = () => { setEditing(null); setForm({ name: "", slug: "", image_url: "" }); setDialogOpen(true); };
-  const openEdit = (cat: Category) => { setEditing(cat); setForm({ name: cat.name, slug: cat.slug, image_url: cat.image_url || "" }); setDialogOpen(true); };
+  const openCreate = () => { setEditing(null); setForm({ name: "", slug: "", image_url: "" }); setPreviewUrl(null); setDialogOpen(true); };
+  const openEdit = (cat: Category) => { setEditing(cat); setForm({ name: cat.name, slug: cat.slug, image_url: cat.image_url || "" }); setPreviewUrl(cat.image_url || null); setDialogOpen(true); };
 
   const handleSave = async () => {
     if (!form.name || !form.slug) { toast({ title: t("common.error"), description: t("admin.nameSlugRequired"), variant: "destructive" }); return; }
