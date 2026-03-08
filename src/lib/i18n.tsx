@@ -460,6 +460,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.categoryDetails": "Détails de la Catégorie",
     "admin.slug": "Slug",
     "admin.imageUrl": "URL de l'Image",
+    "admin.uploadImage": "Télécharger",
     "admin.deleteCategory": "Supprimer la Catégorie ?",
     "admin.deleteCategoryDesc": "Cette action est irréversible.",
     "admin.categoryCreated": "Catégorie créée",
