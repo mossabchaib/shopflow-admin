@@ -489,6 +489,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "shop.priceRange": "Fourchette de prix",
     "product.addToCart": "Ajouter au Panier",
     "product.viewProduct": "Voir le Produit",
+    "product.visitStore": "Visiter la Boutique",
+    "product.soldBy": "Vendu par",
     "product.size": "Taille",
     "product.color": "Couleur",
     "product.quantity": "Quantité",
