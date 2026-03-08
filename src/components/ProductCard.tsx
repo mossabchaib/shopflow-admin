@@ -17,7 +17,7 @@ interface ProductCardProps {
   storeBasePath?: string;
 }
 
-export function ProductCard({ product, index = 0, isFavorite = false, onFavoriteToggle }: ProductCardProps) {
+export function ProductCard({ product, index = 0, isFavorite = false, onFavoriteToggle, storeBasePath }: ProductCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useI18n();
