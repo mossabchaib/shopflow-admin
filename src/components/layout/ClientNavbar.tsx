@@ -29,8 +29,8 @@ export function ClientNavbar() {
     queryKey: ["cart-count", user?.id],
     queryFn: async () => {
       if (!user) return 0;
-      const { count } = await supabase.from("cart_items").select("id", { count: "exact", head: true }).eq("user_id", user.id);
-      return count || 0;
+      const { data } = await supabase.from("cart_items").select("quantity").eq("user_id", user.id);
+      return data ? data.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0;
     },
     enabled: !!user,
   });
