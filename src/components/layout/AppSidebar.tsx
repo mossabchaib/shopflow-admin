@@ -30,6 +30,7 @@ const adminMenuItems = [
   { titleKey: "sidebar.dashboard", url: "/admin", icon: LayoutDashboard },
   { titleKey: "sidebar.stores", url: "/admin/stores", icon: Store },
   { titleKey: "sidebar.analytics", url: "/admin/analytics", icon: BarChart3 },
+  { titleKey: "sidebar.chat", url: "/admin/chat", icon: MessageSquare },
 ];
 
 const sellerMenuItems = [
