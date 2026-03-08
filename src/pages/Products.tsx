@@ -45,6 +45,8 @@ const Products = () => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const { t } = useI18n();
+  const { role } = useUserRole();
+  const { store } = useUserStore();
 
   const [form, setForm] = useState({ name: "", description: "", price: "", cost_price: "", discount_price: "", category_id: "", supplier_id: "", status: "active" as string });
   const [sizes, setSizes] = useState<ProductSize[]>([{ size_label: "M", extra_price: 0 }]);
@@ -53,8 +55,15 @@ const Products = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const fetchData = async () => {
+    let prodQuery = supabase.from("products").select("*, categories(name), product_images(*), product_sizes(*), product_colors(*), product_variants(*)").order("created_at", { ascending: false });
+    
+    // If seller, only show their store's products
+    if (role === "seller" && store) {
+      prodQuery = prodQuery.eq("store_id", store.id);
+    }
+
     const [prodRes, catRes, supRes] = await Promise.all([
-      supabase.from("products").select("*, categories(name), product_images(*), product_sizes(*), product_colors(*), product_variants(*)").order("created_at", { ascending: false }),
+      prodQuery,
       supabase.from("categories").select("id, name").order("name"),
       supabase.from("suppliers").select("id, name").order("name"),
     ]);
@@ -64,7 +73,7 @@ const Products = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [role, store]);
 
   const filtered = products.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
