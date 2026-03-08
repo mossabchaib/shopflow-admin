@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Moon, Sun, Bell, LogOut, ShoppingCart, Package } from "lucide-react";
+import { Moon, Sun, Bell, LogOut, Store, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
