@@ -132,6 +132,8 @@ const App = () => (
                   <Route path="/admin/orders" element={<AdminOrSellerRoute><DashboardLayout><Orders /></DashboardLayout></AdminOrSellerRoute>} />
                   <Route path="/admin/store-settings" element={<AdminOrSellerRoute><DashboardLayout><StoreSettings /></DashboardLayout></AdminOrSellerRoute>} />
                   <Route path="/admin/reviews" element={<AdminOrSellerRoute><DashboardLayout><Reviews /></DashboardLayout></AdminOrSellerRoute>} />
+                  <Route path="/admin/seller-dashboard" element={<AdminOrSellerRoute><DashboardLayout><SellerDashboard /></DashboardLayout></AdminOrSellerRoute>} />
+                  <Route path="/admin/seller-coupons" element={<AdminOrSellerRoute><DashboardLayout><SellerCoupons /></DashboardLayout></AdminOrSellerRoute>} />
 
                   {/* Admin-only routes */}
                   <Route path="/admin/stores" element={<AdminRoute><DashboardLayout><Stores /></DashboardLayout></AdminRoute>} />
