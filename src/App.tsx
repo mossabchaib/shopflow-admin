@@ -127,12 +127,14 @@ const App = () => (
                 <Route path="/admin/store-settings" element={<AdminOrSellerRoute><DashboardLayout><StoreSettings /></DashboardLayout></AdminOrSellerRoute>} />
 
                 {/* Admin-only routes */}
-                <Route path="/admin/customers" element={<AdminRoute><DashboardLayout><Customers /></DashboardLayout></AdminRoute>} />
-                <Route path="/admin/categories" element={<AdminRoute><DashboardLayout><Categories /></DashboardLayout></AdminRoute>} />
-                <Route path="/admin/analytics" element={<AdminRoute><DashboardLayout><Analytics /></DashboardLayout></AdminRoute>} />
-                <Route path="/admin/discounts" element={<AdminRoute><DashboardLayout><Discounts /></DashboardLayout></AdminRoute>} />
-                <Route path="/admin/suppliers" element={<AdminRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminRoute>} />
                 <Route path="/admin/stores" element={<AdminRoute><DashboardLayout><Stores /></DashboardLayout></AdminRoute>} />
+
+                {/* Admin + Seller shared routes */}
+                <Route path="/admin/customers" element={<AdminOrSellerRoute><DashboardLayout><Customers /></DashboardLayout></AdminOrSellerRoute>} />
+                <Route path="/admin/categories" element={<AdminOrSellerRoute><DashboardLayout><Categories /></DashboardLayout></AdminOrSellerRoute>} />
+                <Route path="/admin/analytics" element={<AdminOrSellerRoute><DashboardLayout><Analytics /></DashboardLayout></AdminOrSellerRoute>} />
+                <Route path="/admin/discounts" element={<AdminOrSellerRoute><DashboardLayout><Discounts /></DashboardLayout></AdminOrSellerRoute>} />
+                <Route path="/admin/suppliers" element={<AdminOrSellerRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminOrSellerRoute>} />
 
                 {/* Store sub-site routes — full website per store */}
                 <Route path="/store/:slug" element={<StoreLayout><StoreHome /></StoreLayout>} />
