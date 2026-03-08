@@ -343,12 +343,19 @@ export default function Chat() {
     }
   }
 
-  async function uploadVoice(blob: Blob) {
-    if (!activeConv || !user) return;
+  function cancelVoicePreview() {
+    if (voicePreviewUrl) URL.revokeObjectURL(voicePreviewUrl);
+    setVoiceBlob(null);
+    setVoicePreviewUrl(null);
+    setVoiceDuration(0);
+  }
+
+  async function sendVoiceFromPreview() {
+    if (!voiceBlob || !activeConv || !user) return;
     setSending(true);
     const path = `${activeConv.id}/voice_${Date.now()}.webm`;
 
-    const { error: upErr } = await supabase.storage.from("chat-files").upload(path, blob);
+    const { error: upErr } = await supabase.storage.from("chat-files").upload(path, voiceBlob);
     if (upErr) { toast.error("Upload failed"); setSending(false); return; }
 
     const { data: urlData } = supabase.storage.from("chat-files").getPublicUrl(path);
@@ -361,7 +368,7 @@ export default function Chat() {
       file_url: urlData.publicUrl,
       file_name: "voice.webm",
       file_type: "audio/webm",
-      duration: recordingDuration,
+      duration: voiceDuration,
     });
 
     if (error) toast.error("Failed to send voice");
@@ -369,8 +376,8 @@ export default function Chat() {
       await supabase.from("chat_conversations").update({ updated_at: new Date().toISOString() }).eq("id", activeConv.id);
       fetchConversations();
     }
+    cancelVoicePreview();
     setSending(false);
-    setRecordingDuration(0);
   }
 
   // Audio playback
