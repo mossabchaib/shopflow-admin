@@ -111,6 +111,7 @@ const ProductDetail = () => {
 
   const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length : 0;
 
+  const toggleFav = async () => {
     if (!user) { toast({ title: t("common.pleaseSignIn"), variant: "destructive" }); return; }
     if (isFav) {
       await supabase.from("favorites").delete().eq("user_id", user.id).eq("product_id", id!);
