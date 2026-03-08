@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Eye, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Edit, Trash2, Eye, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
