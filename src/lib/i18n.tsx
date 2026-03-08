@@ -205,6 +205,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.categoryDetails": "Category Details",
     "admin.slug": "Slug",
     "admin.imageUrl": "Image URL",
+    "admin.uploadImage": "Upload",
     "admin.deleteCategory": "Delete Category?",
     "admin.deleteCategoryDesc": "This action cannot be undone.",
     "admin.categoryCreated": "Category created",
