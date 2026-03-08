@@ -42,6 +42,7 @@ const sellerMenuItems = [
   { titleKey: "sidebar.products", url: "/admin/products", icon: Package },
   { titleKey: "sidebar.orders", url: "/admin/orders", icon: ShoppingCart },
   { titleKey: "seller.storeCoupons", url: "/admin/seller-coupons", icon: Tag },
+  { titleKey: "seller.sellerAnalytics", url: "/admin/seller-analytics", icon: BarChart },
   { titleKey: "sidebar.customers", url: "/admin/customers", icon: Users },
   { titleKey: "sidebar.categories", url: "/admin/categories", icon: FolderTree },
   { titleKey: "sidebar.suppliers", url: "/admin/suppliers", icon: Truck },

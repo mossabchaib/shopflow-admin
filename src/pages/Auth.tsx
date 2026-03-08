@@ -47,7 +47,12 @@ const Auth = () => {
               {t("auth.signin")}
             </Button>
           </form>
-          <p className="text-sm text-center text-muted-foreground mt-4">
+          <div className="text-center mt-3">
+            <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+              {t("auth.forgotPassword")}
+            </Link>
+          </div>
+          <p className="text-sm text-center text-muted-foreground mt-3">
             {t("auth.noAccount")}{" "}
             <Link to="/register" className="text-primary font-medium hover:underline">
               {t("auth.signup")}
