@@ -31,6 +31,7 @@ import Checkout from "./pages/client/Checkout";
 import StoreHome from "./pages/client/StoreHome";
 import StoreShop from "./pages/client/StoreShop";
 import StoreProductDetail from "./pages/client/StoreProductDetail";
+import Account from "./pages/client/Account";
 import StoreSettings from "./pages/seller/StoreSettings";
 import RequestStore from "./pages/seller/RequestStore";
 import { supabase } from "@/integrations/supabase/client";
