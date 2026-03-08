@@ -136,6 +136,7 @@ const App = () => (
                 <Route path="/admin/analytics" element={<AdminOrSellerRoute><DashboardLayout><Analytics /></DashboardLayout></AdminOrSellerRoute>} />
                 <Route path="/admin/discounts" element={<AdminOrSellerRoute><DashboardLayout><Discounts /></DashboardLayout></AdminOrSellerRoute>} />
                 <Route path="/admin/suppliers" element={<AdminOrSellerRoute><DashboardLayout><Suppliers /></DashboardLayout></AdminOrSellerRoute>} />
+                <Route path="/admin/chat" element={<AdminOrSellerRoute><DashboardLayout><Chat /></DashboardLayout></AdminOrSellerRoute>} />
 
                 {/* Store sub-site routes — full website per store */}
                 <Route path="/store/:slug" element={<StoreLayout><StoreHome /></StoreLayout>} />
