@@ -909,6 +909,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "shop.priceRange": "نطاق السعر",
     "product.addToCart": "أضف إلى السلة",
     "product.viewProduct": "عرض المنتج",
+    "product.visitStore": "زيارة المتجر",
+    "product.soldBy": "يُباع بواسطة",
     "product.size": "المقاس",
     "product.color": "اللون",
     "product.quantity": "الكمية",
