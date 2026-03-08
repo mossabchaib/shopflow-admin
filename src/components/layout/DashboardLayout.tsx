@@ -37,29 +37,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       setNotifLoading(true);
       const notifs: Notification[] = [];
 
-      const [pendingRes, lowStockRes] = await Promise.all([
-        supabase.from("orders").select("id, total, created_at").eq("status", "pending").order("created_at", { ascending: false }).limit(10),
-        supabase.from("product_variants").select("stock, product_sizes(size_label), product_colors(color_name), products(name)").lt("stock", 5).order("stock").limit(10),
+      const [pendingStoresRes, unreadChatsRes] = await Promise.all([
+        supabase.from("stores").select("id, store_name, created_at").eq("status", "pending").order("created_at", { ascending: false }).limit(10),
+        supabase.from("chat_messages").select("id, content, created_at").eq("is_read", false).order("created_at", { ascending: false }).limit(10),
       ]);
 
-      (pendingRes.data || []).forEach((o: any) => {
+      (pendingStoresRes.data || []).forEach((s: any) => {
         notifs.push({
-          id: `order-${o.id}`,
+          id: `store-${s.id}`,
           type: "order",
-          message: t("admin.newPendingOrder"),
-          detail: `$${Number(o.total).toFixed(2)} — ${new Date(o.created_at).toLocaleDateString()}`,
+          message: t("admin.newStoreRequest"),
+          detail: `${s.store_name} — ${new Date(s.created_at).toLocaleDateString()}`,
         });
       });
 
-      (lowStockRes.data || []).forEach((v: any, i: number) => {
-        const productName = v.products?.name || "—";
-        const sizeName = v.product_sizes?.size_label || "";
-        const colorName = v.product_colors?.color_name || "";
+      (unreadChatsRes.data || []).forEach((m: any, i: number) => {
         notifs.push({
-          id: `stock-${i}`,
+          id: `chat-${m.id}`,
           type: "stock",
-          message: t("admin.lowStockWarning"),
-          detail: `${productName} ${sizeName} ${colorName} — ${v.stock} ${t("admin.left")}`,
+          message: t("admin.newChatMessage"),
+          detail: m.content?.slice(0, 50) || "...",
         });
       });
 

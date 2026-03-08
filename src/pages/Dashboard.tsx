@@ -1,80 +1,46 @@
 import { useState, useEffect } from "react";
 import {
-  DollarSign, ShoppingCart, Users, Package, AlertTriangle, Loader2,
+  Store, MessageSquare, BarChart3, Users, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
-import { useUserRole, useUserStore } from "@/hooks/useStore";
+import { useUserRole } from "@/hooks/useStore";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ revenue: 0, orders: 0, customers: 0, products: 0 });
-  const [latestOrders, setLatestOrders] = useState<any[]>([]);
-  const [lowStock, setLowStock] = useState<any[]>([]);
+  const [stats, setStats] = useState({ stores: 0, pendingStores: 0, unreadChats: 0, totalSellers: 0 });
+  const [pendingStores, setPendingStores] = useState<any[]>([]);
   const { t } = useI18n();
   const { role } = useUserRole();
-  const { store } = useUserStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (role === "seller" && !store) return;
-
     const fetchData = async () => {
-      // For sellers, scope queries to their store
-      const storeFilter = (role === "seller" && store) ? store.id : null;
-
-      let ordersQuery = supabase.from("orders").select("total, status");
-      let latestQuery = supabase.from("orders").select("id, total, status, created_at, customer_id").order("created_at", { ascending: false }).limit(5);
-      let productsQuery = supabase.from("products").select("id", { count: "exact", head: true });
-      let lowStockQuery = supabase.from("product_sizes").select("size_label, stock, products(name, store_id)").lt("stock", 10).order("stock").limit(5);
-
-      if (storeFilter) {
-        productsQuery = productsQuery.eq("store_id", storeFilter);
-      }
-
-      const [ordersRes, customersRes, productsRes, latestRes, lowStockRes] = await Promise.all([
-        ordersQuery,
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
-        productsQuery,
-        latestQuery,
-        lowStockQuery,
+      const [storesRes, pendingRes, sellersRes, chatsRes] = await Promise.all([
+        supabase.from("stores").select("id", { count: "exact", head: true }),
+        supabase.from("stores").select("id, store_name, slug, owner_id, created_at, status").eq("status", "pending").order("created_at", { ascending: false }).limit(5),
+        supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "seller"),
+        supabase.from("chat_messages").select("id", { count: "exact", head: true }).eq("is_read", false),
       ]);
 
-      const customerIds = [...new Set((latestRes.data || []).map((o: any) => o.customer_id).filter(Boolean))];
-      let profilesMap: Record<string, string> = {};
-      if (customerIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, name").in("user_id", customerIds);
-        (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p.name; });
-      }
-
-      const orders = (latestRes.data || []).map((o: any) => ({ ...o, customerName: profilesMap[o.customer_id] || "—" }));
-      const revenue = (ordersRes.data || []).reduce((a: number, o: any) => a + Number(o.total), 0);
-      setStats({ revenue, orders: ordersRes.data?.length || 0, customers: customersRes.count || 0, products: productsRes.count || 0 });
-      setLatestOrders(orders);
-      
-      // For sellers, filter low stock to their store products only
-      let lowStockData = (lowStockRes.data as any) || [];
-      if (storeFilter) {
-        lowStockData = lowStockData.filter((item: any) => item.products?.store_id === storeFilter);
-      }
-      setLowStock(lowStockData);
+      setStats({
+        stores: storesRes.count || 0,
+        pendingStores: (pendingRes.data || []).length,
+        unreadChats: chatsRes.count || 0,
+        totalSellers: sellersRes.count || 0,
+      });
+      setPendingStores(pendingRes.data || []);
       setLoading(false);
     };
     fetchData();
-  }, [role, store]);
-
-  const statusColors: Record<string, string> = {
-    delivered: "bg-success/10 text-success",
-    shipped: "bg-info/10 text-info",
-    pending: "bg-warning/10 text-warning",
-    paid: "bg-primary/10 text-primary",
-    cancelled: "bg-destructive/10 text-destructive",
-  };
+  }, [role]);
 
   const statCards = [
-    { label: t("admin.totalRevenue"), value: `$${stats.revenue.toLocaleString("en", { minimumFractionDigits: 2 })}`, icon: DollarSign, color: "bg-primary/10 text-primary" },
-    { label: t("admin.totalOrders"), value: String(stats.orders), icon: ShoppingCart, color: "bg-secondary/10 text-secondary" },
-    { label: t("admin.totalCustomers"), value: String(stats.customers), icon: Users, color: "bg-success/10 text-success" },
-    { label: t("admin.totalProducts"), value: String(stats.products), icon: Package, color: "bg-warning/10 text-warning" },
+    { label: t("admin.totalStores"), value: String(stats.stores), icon: Store, color: "bg-primary/10 text-primary", link: "/admin/stores" },
+    { label: t("admin.pendingStores"), value: String(stats.pendingStores), icon: Store, color: "bg-warning/10 text-warning", link: "/admin/stores" },
+    { label: t("admin.totalSellers"), value: String(stats.totalSellers), icon: Users, color: "bg-success/10 text-success", link: "/admin/stores" },
+    { label: t("admin.unreadMessages"), value: String(stats.unreadChats), icon: MessageSquare, color: "bg-secondary/10 text-secondary", link: "/admin/chat" },
   ];
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -88,7 +54,11 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat) => (
-          <div key={stat.label} className="stat-card">
+          <div
+            key={stat.label}
+            className="stat-card cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate(stat.link)}
+          >
             <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${stat.color}`}>
               <stat.icon className="h-5 w-5" />
             </div>
@@ -100,56 +70,50 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 dashboard-card">
-          <div className="p-6 border-b">
-            <h2 className="text-lg font-semibold text-foreground">{t("admin.latestOrders")}</h2>
+      {/* Pending Store Requests */}
+      {pendingStores.length > 0 && (
+        <div className="dashboard-card">
+          <div className="p-6 border-b flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">{t("admin.pendingStoreRequests")}</h2>
+            <button
+              onClick={() => navigate("/admin/stores")}
+              className="text-sm text-primary hover:underline"
+            >
+              {t("admin.viewAll")}
+            </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="table-header text-start p-4">{t("admin.orderId")}</th>
-                  <th className="table-header text-start p-4">{t("admin.customer")}</th>
-                  <th className="table-header text-start p-4">{t("admin.total")}</th>
-                  <th className="table-header text-start p-4">{t("admin.status")}</th>
-                  <th className="table-header text-start p-4">{t("admin.date")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {latestOrders.map((order) => (
-                  <tr key={order.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                    <td className="p-4 text-sm font-medium text-primary font-mono">{order.id.slice(0, 8)}...</td>
-                    <td className="p-4 text-sm text-foreground">{order.customerName}</td>
-                    <td className="p-4 text-sm font-medium text-foreground">${Number(order.total).toFixed(2)}</td>
-                    <td className="p-4"><span className={`status-badge ${statusColors[order.status] || ""}`}>{order.status}</span></td>
-                    <td className="p-4 text-sm text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-                {latestOrders.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">{t("admin.noOrdersYet")}</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="dashboard-card p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="h-5 w-5 text-warning" />
-            <h2 className="text-lg font-semibold text-foreground">{t("admin.lowStockAlert")}</h2>
-          </div>
-          <div className="space-y-4">
-            {lowStock.map((item: any, i: number) => (
-              <div key={i} className="flex items-center justify-between">
+          <div className="divide-y">
+            {pendingStores.map((store: any) => (
+              <div key={store.id} className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
                 <div>
-                  <p className="text-sm font-medium text-foreground">{item.products?.name || "—"}</p>
-                  <p className="text-xs text-muted-foreground">{t("admin.size")}: {item.size_label}</p>
+                  <p className="text-sm font-medium text-foreground">{store.store_name}</p>
+                  <p className="text-xs text-muted-foreground">/{store.slug} — {new Date(store.created_at).toLocaleDateString()}</p>
                 </div>
-                <span className="status-badge bg-destructive/10 text-destructive">{item.stock} {t("admin.left")}</span>
+                <span className="status-badge bg-warning/10 text-warning">{t("admin.pending")}</span>
               </div>
             ))}
-            {lowStock.length === 0 && <p className="text-sm text-muted-foreground">{t("admin.allStockHealthy")}</p>}
           </div>
         </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: t("admin.manageStores"), icon: Store, link: "/admin/stores", color: "bg-primary/10 text-primary" },
+          { label: t("admin.viewAnalytics"), icon: BarChart3, link: "/admin/analytics", color: "bg-success/10 text-success" },
+          { label: t("admin.openChat"), icon: MessageSquare, link: "/admin/chat", color: "bg-secondary/10 text-secondary" },
+        ].map((action) => (
+          <div
+            key={action.label}
+            onClick={() => navigate(action.link)}
+            className="dashboard-card p-6 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
+          >
+            <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${action.color}`}>
+              <action.icon className="h-6 w-6" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">{action.label}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
