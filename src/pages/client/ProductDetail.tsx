@@ -367,10 +367,49 @@ const ProductDetail = () => {
               ))}
             </div>
             <Textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} placeholder={t("reviews.placeholder")} className="mb-3 resize-none" rows={3} />
-            <Button onClick={submitReview} disabled={submittingReview} size="sm">
-              {submittingReview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-              {t("reviews.submit")}
-            </Button>
+            {/* Image upload */}
+            {reviewImagePreviews.length > 0 && (
+              <div className="flex gap-2 mb-3 flex-wrap">
+                {reviewImagePreviews.map((src, i) => (
+                  <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <button onClick={() => removeReviewImage(i)} className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Button onClick={submitReview} disabled={submittingReview} size="sm">
+                {submittingReview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                {t("reviews.submit")}
+              </Button>
+              {reviewImages.length < 4 && (
+                <label className="cursor-pointer">
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleReviewImageChange} />
+                  <Button variant="outline" size="sm" type="button" asChild>
+                    <span><Camera className="h-4 w-4 mr-1" />{t("reviews.addPhoto")}</span>
+                  </Button>
+                </label>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Star filter */}
+        {reviews.length > 0 && (
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <button onClick={() => setStarFilter(null)} className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${starFilter === null ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+              {t("admin.all")}
+            </button>
+            {[5, 4, 3, 2, 1].map(s => (
+              <button key={s} onClick={() => setStarFilter(s)} className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors flex items-center gap-1 ${starFilter === s ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                {s} <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                <span className="text-muted-foreground">({reviews.filter(r => r.rating === s).length})</span>
+              </button>
+            ))}
           </div>
         )}
 
@@ -378,7 +417,7 @@ const ProductDetail = () => {
           <p className="text-center text-muted-foreground py-8">{t("reviews.noReviews")}</p>
         ) : (
           <div className="space-y-4">
-            {reviews.map(r => (
+            {reviews.filter(r => starFilter === null || r.rating === starFilter).map(r => (
               <div key={r.id} className="p-4 rounded-xl border border-border/50 bg-card">
                 <div className="flex items-center gap-3 mb-2">
                   <Avatar className="h-8 w-8">
@@ -393,6 +432,16 @@ const ProductDetail = () => {
                   <div className="flex">{[1, 2, 3, 4, 5].map(s => <Star key={s} className={`h-3.5 w-3.5 ${s <= (r.rating || 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}</div>
                 </div>
                 {r.comment && <p className="text-sm text-muted-foreground leading-relaxed">{r.comment}</p>}
+                {/* Review images */}
+                {reviewImagesMap[r.id] && reviewImagesMap[r.id].length > 0 && (
+                  <div className="flex gap-2 mt-3 flex-wrap">
+                    {reviewImagesMap[r.id].map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="w-20 h-20 rounded-lg overflow-hidden border border-border hover:opacity-80 transition-opacity">
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
