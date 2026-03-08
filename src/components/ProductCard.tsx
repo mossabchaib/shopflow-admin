@@ -6,7 +6,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
-import { useI18n } from "@/lib/i18n";
 import { useState } from "react";
 
 interface ProductCardProps {
@@ -19,8 +18,6 @@ interface ProductCardProps {
 export function ProductCard({ product, index = 0, isFavorite = false, onFavoriteToggle }: ProductCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { addItem } = useGuestCart();
   const { t } = useI18n();
   const [favState, setFavState] = useState(isFavorite);
 
@@ -30,26 +27,6 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
   };
 
   const price = product.discount_price || product.price;
-
-  const handleAddToCart = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (user) {
-      const { error } = await supabase.from("cart_items").insert({
-        user_id: user.id,
-        product_id: product.id,
-        quantity: 1,
-      });
-      if (error) {
-        toast({ title: t("common.error"), description: error.message, variant: "destructive" });
-        return;
-      }
-      queryClient.invalidateQueries({ queryKey: ["cart-count"] });
-    } else {
-      addItem(product.id, null, 1);
-    }
-    toast({ title: t("product.addToCart") + " ✓" });
-  };
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
