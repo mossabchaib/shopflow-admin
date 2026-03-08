@@ -43,6 +43,9 @@ import SellerDashboard from "./pages/seller/SellerDashboard";
 import SellerCoupons from "./pages/seller/SellerCoupons";
 import RequestStore from "./pages/seller/RequestStore";
 import Reviews from "./pages/Reviews";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import SellerAnalytics from "./pages/seller/SellerAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -125,6 +128,8 @@ const App = () => (
                 <Routes>
                   <Route path="/auth" element={<AuthRoute><ClientLayout><Auth /></ClientLayout></AuthRoute>} />
                   <Route path="/register" element={<AuthRoute><ClientLayout><Register /></ClientLayout></AuthRoute>} />
+                  <Route path="/forgot-password" element={<ClientLayout><ForgotPassword /></ClientLayout>} />
+                  <Route path="/reset-password" element={<ClientLayout><ResetPassword /></ClientLayout>} />
 
                   {/* Admin + Seller shared routes */}
                   <Route path="/admin" element={<AdminOrSellerRoute><DashboardLayout><Dashboard /></DashboardLayout></AdminOrSellerRoute>} />
@@ -134,6 +139,7 @@ const App = () => (
                   <Route path="/admin/reviews" element={<AdminOrSellerRoute><DashboardLayout><Reviews /></DashboardLayout></AdminOrSellerRoute>} />
                   <Route path="/admin/seller-dashboard" element={<AdminOrSellerRoute><DashboardLayout><SellerDashboard /></DashboardLayout></AdminOrSellerRoute>} />
                   <Route path="/admin/seller-coupons" element={<AdminOrSellerRoute><DashboardLayout><SellerCoupons /></DashboardLayout></AdminOrSellerRoute>} />
+                  <Route path="/admin/seller-analytics" element={<AdminOrSellerRoute><DashboardLayout><SellerAnalytics /></DashboardLayout></AdminOrSellerRoute>} />
 
                   {/* Admin-only routes */}
                   <Route path="/admin/stores" element={<AdminRoute><DashboardLayout><Stores /></DashboardLayout></AdminRoute>} />

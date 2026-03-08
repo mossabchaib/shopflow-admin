@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart, Loader2, Minus, Plus, Star, Send, Truck, GitCompareArrows, Store as StoreIcon } from "lucide-react";
+import { Heart, ShoppingCart, Loader2, Minus, Plus, Star, Send, Truck, GitCompareArrows, Store as StoreIcon, Camera, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -40,7 +40,11 @@ const ProductDetail = () => {
   const [isFav, setIsFav] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const [reviewImages, setReviewImages] = useState<File[]>([]);
+  const [reviewImagePreviews, setReviewImagePreviews] = useState<string[]>([]);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [starFilter, setStarFilter] = useState<number | null>(null);
+  const [reviewImagesMap, setReviewImagesMap] = useState<Record<string, string[]>>({});
   const [deliveryDays, setDeliveryDays] = useState<number | null>(null);
 
   useEffect(() => {
@@ -86,7 +90,17 @@ const ProductDetail = () => {
         const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", customerIds);
         const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
         setReviews(revs.map((r: any) => ({ ...r, profiles: profMap.get(r.customer_id) || null })));
-      } else { setReviews([]); }
+
+        // Fetch review images
+        const reviewIds = revs.map((r: any) => r.id);
+        const { data: rImages } = await supabase.from("review_images").select("review_id, image_url").in("review_id", reviewIds);
+        const imgMap: Record<string, string[]> = {};
+        (rImages || []).forEach((ri: any) => {
+          if (!imgMap[ri.review_id]) imgMap[ri.review_id] = [];
+          imgMap[ri.review_id].push(ri.image_url);
+        });
+        setReviewImagesMap(imgMap);
+      } else { setReviews([]); setReviewImagesMap({}); }
 
       // Favorite
       if (user) {
@@ -98,23 +112,59 @@ const ProductDetail = () => {
     fetchAll();
   }, [id, user]);
 
+  const handleReviewImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).slice(0, 4 - reviewImages.length);
+    setReviewImages(prev => [...prev, ...files]);
+    files.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = (ev) => setReviewImagePreviews(prev => [...prev, ev.target?.result as string]);
+      reader.readAsDataURL(f);
+    });
+  };
+
+  const removeReviewImage = (idx: number) => {
+    setReviewImages(prev => prev.filter((_, i) => i !== idx));
+    setReviewImagePreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const submitReview = async () => {
     if (!user) { toast({ title: t("common.pleaseSignIn"), variant: "destructive" }); return; }
     setSubmittingReview(true);
-    const { error } = await supabase.from("reviews").insert({ product_id: id!, customer_id: user.id, rating: reviewRating, comment: reviewComment.trim() || null });
-    if (error) toast({ title: t("common.error"), description: error.message, variant: "destructive" });
-    else {
-      toast({ title: t("reviews.submitted") });
-      setReviewComment("");
-      setReviewRating(5);
-      const { data: revs2 } = await supabase.from("reviews").select("*").eq("product_id", id!).eq("status", "approved").order("created_at", { ascending: false });
-      if (revs2 && revs2.length > 0) {
-        const cIds = [...new Set(revs2.map((r: any) => r.customer_id).filter(Boolean))];
-        const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", cIds);
-        const pm = new Map((profs || []).map((p: any) => [p.user_id, p]));
-        setReviews(revs2.map((r: any) => ({ ...r, profiles: pm.get(r.customer_id) || null })));
-      } else { setReviews([]); }
+    const { data: newReview, error } = await supabase.from("reviews").insert({ product_id: id!, customer_id: user.id, rating: reviewRating, comment: reviewComment.trim() || null }).select().single();
+    if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); setSubmittingReview(false); return; }
+
+    // Upload images
+    if (reviewImages.length > 0 && newReview) {
+      for (const file of reviewImages) {
+        const ext = file.name.split(".").pop();
+        const path = `${user.id}/${newReview.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("review-images").upload(path, file);
+        if (!upErr) {
+          const { data: urlData } = supabase.storage.from("review-images").getPublicUrl(path);
+          await supabase.from("review_images").insert({ review_id: newReview.id, image_url: urlData.publicUrl });
+        }
+      }
     }
+
+    toast({ title: t("reviews.submitted") });
+    setReviewComment("");
+    setReviewRating(5);
+    setReviewImages([]);
+    setReviewImagePreviews([]);
+
+    // Refresh reviews
+    const { data: revs2 } = await supabase.from("reviews").select("*").eq("product_id", id!).eq("status", "approved").order("created_at", { ascending: false });
+    if (revs2 && revs2.length > 0) {
+      const cIds = [...new Set(revs2.map((r: any) => r.customer_id).filter(Boolean))];
+      const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", cIds);
+      const pm = new Map((profs || []).map((p: any) => [p.user_id, p]));
+      setReviews(revs2.map((r: any) => ({ ...r, profiles: pm.get(r.customer_id) || null })));
+      const rIds = revs2.map((r: any) => r.id);
+      const { data: rImgs } = await supabase.from("review_images").select("review_id, image_url").in("review_id", rIds);
+      const imgM: Record<string, string[]> = {};
+      (rImgs || []).forEach((ri: any) => { if (!imgM[ri.review_id]) imgM[ri.review_id] = []; imgM[ri.review_id].push(ri.image_url); });
+      setReviewImagesMap(imgM);
+    } else { setReviews([]); }
     setSubmittingReview(false);
   };
 
@@ -317,10 +367,49 @@ const ProductDetail = () => {
               ))}
             </div>
             <Textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} placeholder={t("reviews.placeholder")} className="mb-3 resize-none" rows={3} />
-            <Button onClick={submitReview} disabled={submittingReview} size="sm">
-              {submittingReview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-              {t("reviews.submit")}
-            </Button>
+            {/* Image upload */}
+            {reviewImagePreviews.length > 0 && (
+              <div className="flex gap-2 mb-3 flex-wrap">
+                {reviewImagePreviews.map((src, i) => (
+                  <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <button onClick={() => removeReviewImage(i)} className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Button onClick={submitReview} disabled={submittingReview} size="sm">
+                {submittingReview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                {t("reviews.submit")}
+              </Button>
+              {reviewImages.length < 4 && (
+                <label className="cursor-pointer">
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleReviewImageChange} />
+                  <Button variant="outline" size="sm" type="button" asChild>
+                    <span><Camera className="h-4 w-4 mr-1" />{t("reviews.addPhoto")}</span>
+                  </Button>
+                </label>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Star filter */}
+        {reviews.length > 0 && (
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <button onClick={() => setStarFilter(null)} className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${starFilter === null ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+              {t("admin.all")}
+            </button>
+            {[5, 4, 3, 2, 1].map(s => (
+              <button key={s} onClick={() => setStarFilter(s)} className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors flex items-center gap-1 ${starFilter === s ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                {s} <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                <span className="text-muted-foreground">({reviews.filter(r => r.rating === s).length})</span>
+              </button>
+            ))}
           </div>
         )}
 
@@ -328,7 +417,7 @@ const ProductDetail = () => {
           <p className="text-center text-muted-foreground py-8">{t("reviews.noReviews")}</p>
         ) : (
           <div className="space-y-4">
-            {reviews.map(r => (
+            {reviews.filter(r => starFilter === null || r.rating === starFilter).map(r => (
               <div key={r.id} className="p-4 rounded-xl border border-border/50 bg-card">
                 <div className="flex items-center gap-3 mb-2">
                   <Avatar className="h-8 w-8">
@@ -343,6 +432,16 @@ const ProductDetail = () => {
                   <div className="flex">{[1, 2, 3, 4, 5].map(s => <Star key={s} className={`h-3.5 w-3.5 ${s <= (r.rating || 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />)}</div>
                 </div>
                 {r.comment && <p className="text-sm text-muted-foreground leading-relaxed">{r.comment}</p>}
+                {/* Review images */}
+                {reviewImagesMap[r.id] && reviewImagesMap[r.id].length > 0 && (
+                  <div className="flex gap-2 mt-3 flex-wrap">
+                    {reviewImagesMap[r.id].map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="w-20 h-20 rounded-lg overflow-hidden border border-border hover:opacity-80 transition-opacity">
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
