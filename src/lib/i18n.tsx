@@ -29,6 +29,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "shop.noProducts": "No products found.",
     // Product
     "product.addToCart": "Add to Cart",
+    "product.viewProduct": "View Product",
     "product.size": "Size",
     "product.color": "Color",
     "product.quantity": "Quantity",
@@ -298,6 +299,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "shop.allCategories": "Toutes les Catégories",
     "shop.noProducts": "Aucun produit trouvé.",
     "product.addToCart": "Ajouter au Panier",
+    "product.viewProduct": "Voir le Produit",
     "product.size": "Taille",
     "product.color": "Couleur",
     "product.quantity": "Quantité",
@@ -543,6 +545,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "shop.allCategories": "جميع التصنيفات",
     "shop.noProducts": "لم يتم العثور على منتجات.",
     "product.addToCart": "أضف إلى السلة",
+    "product.viewProduct": "عرض المنتج",
     "product.size": "المقاس",
     "product.color": "اللون",
     "product.quantity": "الكمية",

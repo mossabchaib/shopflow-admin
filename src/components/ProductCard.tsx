@@ -1,12 +1,10 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart } from "lucide-react";
+import { Heart, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useGuestCart } from "@/hooks/useGuestCart";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/lib/i18n";
 import { useState } from "react";
 
@@ -20,8 +18,6 @@ interface ProductCardProps {
 export function ProductCard({ product, index = 0, isFavorite = false, onFavoriteToggle }: ProductCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { addItem } = useGuestCart();
   const { t } = useI18n();
   const [favState, setFavState] = useState(isFavorite);
 
@@ -31,26 +27,6 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
   };
 
   const price = product.discount_price || product.price;
-
-  const handleAddToCart = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (user) {
-      const { error } = await supabase.from("cart_items").insert({
-        user_id: user.id,
-        product_id: product.id,
-        quantity: 1,
-      });
-      if (error) {
-        toast({ title: t("common.error"), description: error.message, variant: "destructive" });
-        return;
-      }
-      queryClient.invalidateQueries({ queryKey: ["cart-count"] });
-    } else {
-      addItem(product.id, null, 1);
-    }
-    toast({ title: t("product.addToCart") + " ✓" });
-  };
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -86,14 +62,13 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
           />
           {/* Overlay actions */}
           <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors duration-300" />
-          <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+           <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
             <Button
               size="sm"
               className="flex-1 h-9 text-xs font-medium"
-              onClick={handleAddToCart}
             >
-              <ShoppingCart className="h-3.5 w-3.5 me-1.5" />
-              {t("product.addToCart")}
+              <Eye className="h-3.5 w-3.5 me-1.5" />
+              {t("product.viewProduct")}
             </Button>
           </div>
           {/* Fav button */}
