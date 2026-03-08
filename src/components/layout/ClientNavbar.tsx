@@ -119,7 +119,7 @@ export function ClientNavbar() {
               )}
             </Button>
 
-            {user && isAdmin && (
+            {user && dashboardRole && (
               <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/admin")} title={t("nav.dashboard")}>
                 <LayoutDashboard className="h-4 w-4" />
               </Button>
