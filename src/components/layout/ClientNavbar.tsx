@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingCart, Heart, Menu, X, Store, LogOut, LayoutDashboard, Globe, Sun, Moon, UserCircle, List, RotateCcw } from "lucide-react";
+import { ShoppingCart, Heart, Menu, X, Store, LogOut, LayoutDashboard, Globe, Sun, Moon, UserCircle, List, RotateCcw, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
