@@ -164,24 +164,39 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string | null
+          duration: number | null
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
           id: string
           is_read: boolean | null
+          message_type: string
           sender_id: string
         }
         Insert: {
           content: string
           conversation_id: string
           created_at?: string | null
+          duration?: number | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           is_read?: boolean | null
+          message_type?: string
           sender_id: string
         }
         Update: {
           content?: string
           conversation_id?: string
           created_at?: string | null
+          duration?: number | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           is_read?: boolean | null
+          message_type?: string
           sender_id?: string
         }
         Relationships: [
