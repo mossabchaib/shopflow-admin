@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart } from "lucide-react";
+import { Heart, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useGuestCart } from "@/hooks/useGuestCart";
