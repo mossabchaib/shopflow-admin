@@ -40,7 +40,11 @@ const ProductDetail = () => {
   const [isFav, setIsFav] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const [reviewImages, setReviewImages] = useState<File[]>([]);
+  const [reviewImagePreviews, setReviewImagePreviews] = useState<string[]>([]);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [starFilter, setStarFilter] = useState<number | null>(null);
+  const [reviewImagesMap, setReviewImagesMap] = useState<Record<string, string[]>>({});
   const [deliveryDays, setDeliveryDays] = useState<number | null>(null);
 
   useEffect(() => {
