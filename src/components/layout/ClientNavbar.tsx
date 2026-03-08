@@ -37,12 +37,15 @@ export function ClientNavbar() {
 
   const cartCount = user ? (dbCartCount || 0) : guestCartCount;
 
-  const { data: isAdmin } = useQuery({
-    queryKey: ["is-admin", user?.id],
+  const { data: dashboardRole } = useQuery({
+    queryKey: ["dashboard-role", user?.id],
     queryFn: async () => {
-      if (!user) return false;
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-      return !!data;
+      if (!user) return null;
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      const roles = (data || []).map((r: any) => r.role);
+      if (roles.includes("admin")) return "admin";
+      if (roles.includes("seller")) return "seller";
+      return null;
     },
     enabled: !!user,
   });
