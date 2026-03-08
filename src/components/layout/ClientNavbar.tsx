@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useI18n, Lang } from "@/lib/i18n";
 import { useGuestCart } from "@/hooks/useGuestCart";
 import { useTheme } from "next-themes";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const languages: { code: Lang; label: string }[] = [
   { code: "en", label: "English" },
