@@ -178,6 +178,17 @@ const Orders = () => {
                 <div className="flex justify-between font-semibold border-t pt-1"><span>{t("admin.total")}</span><span>${Number(selected.total).toFixed(2)}</span></div>
               </div>
 
+              {selected.addresses && (
+                <div className="border rounded-lg p-3 space-y-1">
+                  <span className="text-sm font-semibold text-foreground">{t("checkout.shippingAddress")}</span>
+                  <p className="text-sm">{selected.addresses.full_name}</p>
+                  {selected.addresses.phone && <p className="text-sm text-muted-foreground">{selected.addresses.phone}</p>}
+                  <p className="text-sm text-muted-foreground">
+                    {[selected.addresses.street, selected.addresses.city, selected.addresses.state, selected.addresses.postal_code, selected.addresses.country].filter(Boolean).join(", ")}
+                  </p>
+                </div>
+              )}
+
               {selected.notes && <div><span className="text-sm text-muted-foreground">{t("admin.notes")}</span><p className="text-sm">{selected.notes}</p></div>}
             </div>
           )}
