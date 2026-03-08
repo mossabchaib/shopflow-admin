@@ -41,6 +41,11 @@ const sellerMenuItems = [
   { titleKey: "sidebar.dashboard", url: "/admin", icon: LayoutDashboard },
   { titleKey: "sidebar.products", url: "/admin/products", icon: Package },
   { titleKey: "sidebar.orders", url: "/admin/orders", icon: ShoppingCart },
+  { titleKey: "sidebar.customers", url: "/admin/customers", icon: Users },
+  { titleKey: "sidebar.categories", url: "/admin/categories", icon: FolderTree },
+  { titleKey: "sidebar.suppliers", url: "/admin/suppliers", icon: Truck },
+  { titleKey: "sidebar.analytics", url: "/admin/analytics", icon: BarChart3 },
+  { titleKey: "sidebar.discounts", url: "/admin/discounts", icon: Ticket },
   { titleKey: "seller.storeSettings", url: "/admin/store-settings", icon: Settings },
 ];
 
