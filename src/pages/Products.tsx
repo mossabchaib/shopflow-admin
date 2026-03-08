@@ -141,7 +141,11 @@ const Products = () => {
   const handleSave = async () => {
     if (!form.name || !form.price) { toast({ title: t("common.error"), description: t("admin.nameAndPriceRequired"), variant: "destructive" }); return; }
     setSaving(true);
-    const productData = { name: form.name, description: form.description || null, price: parseFloat(form.price), cost_price: parseFloat(form.cost_price) || 0, discount_price: form.discount_price ? parseFloat(form.discount_price) : null, category_id: form.category_id || null, supplier_id: form.supplier_id || null, stock: totalStock, status: form.status as any };
+    const productData: any = { name: form.name, description: form.description || null, price: parseFloat(form.price), cost_price: parseFloat(form.cost_price) || 0, discount_price: form.discount_price ? parseFloat(form.discount_price) : null, category_id: form.category_id || null, supplier_id: form.supplier_id || null, stock: totalStock, status: form.status as any };
+    // Attach store_id for sellers
+    if (role === "seller" && store && !editing) {
+      productData.store_id = store.id;
+    }
 
     let productId = editing?.id;
     if (editing) {
