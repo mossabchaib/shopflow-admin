@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart, Loader2, Minus, Plus, Star, Send, Truck, GitCompareArrows } from "lucide-react";
+import { Heart, ShoppingCart, Loader2, Minus, Plus, Star, Send, Truck, GitCompareArrows, Store as StoreIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
