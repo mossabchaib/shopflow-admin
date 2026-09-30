@@ -70,7 +70,7 @@ const ProductDetail = () => {
       setLoading(false);
     };
     fetchAll();
-  }, [id, user]);
+  }, [id, user?.id]);
 
   const toggleFav = async () => {
     if (!user) { toast({ title: t("common.pleaseSignIn"), variant: "destructive" }); return; }

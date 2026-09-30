@@ -25,7 +25,7 @@ const Favorites = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchFavs(); }, [user]);
+  useEffect(() => { fetchFavs(); }, [user?.id]);
 
   const remove = async (id: string) => {
     await supabase.from("favorites").delete().eq("id", id);

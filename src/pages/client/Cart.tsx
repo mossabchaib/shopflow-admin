@@ -40,7 +40,7 @@ const Cart = () => {
       queryClient.invalidateQueries({ queryKey: ["cart-count"] });
     };
     mergeGuestCart();
-  }, [user]);
+  }, [user?.id]);
 
   // Fetch DB cart for logged-in users
   useEffect(() => {
@@ -55,7 +55,7 @@ const Cart = () => {
       setLoading(false);
     };
     fetchDbCart();
-  }, [user]);
+  }, [user?.id]);
 
   // Fetch product details for guest cart items
   useEffect(() => {
@@ -70,7 +70,7 @@ const Cart = () => {
       setLoading(false);
     };
     fetchGuestProducts();
-  }, [user, guestCart.items]);
+  }, [user?.id, guestCart.items]);
 
   const getImage = (p: any) => {
     const primary = p?.product_images?.find((i: any) => i.is_primary);

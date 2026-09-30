@@ -63,7 +63,7 @@ const Checkout = () => {
       }
     };
     prefill();
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     const fetchCart = async () => {
