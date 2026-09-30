@@ -178,23 +178,26 @@ const App = () => {
 
                 {/* ==================== AUTH ==================== */}
 
-                <Route
-                  path="/auth"
-                  element={
-                    <AuthRoute>
-                      <Auth />
-                    </AuthRoute>
-                  }
-                />
-
-                <Route
-                  path="/register"
-                  element={
-                    <AuthRoute>
-                      <Register />
-                    </AuthRoute>
-                  }
-                />
+            <Route
+  path="/auth"
+  element={
+    <AuthRoute>
+      <ClientLayout>
+        <Auth />
+      </ClientLayout>
+    </AuthRoute>
+  }
+/>
+<Route
+  path="/register"
+  element={
+    <AuthRoute>
+      <ClientLayout>
+        <Register />
+      </ClientLayout>
+    </AuthRoute>
+  }
+/>
 
                 {/* ==================== ADMIN ==================== */}
 
