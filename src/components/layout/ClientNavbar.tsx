@@ -95,6 +95,17 @@ export function ClientNavbar() {
     enabled: !!user,
   });
 
+  const links = [
+    {
+      href: "/",
+      label: t("nav.home"),
+    },
+    {
+      href: "/shop",
+      label: t("nav.shop"),
+    },
+  ];
+
   const isActive = (path: string) => {
     if (path === "/") {
       return location.pathname === "/";
@@ -109,7 +120,8 @@ export function ClientNavbar() {
   return (
     <>
       {/* =====================================================
-          TOP NAVBAR
+          DESKTOP / TOP NAVBAR
+          Original navbar preserved
       ====================================================== */}
       <nav className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur-lg">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -125,9 +137,26 @@ export function ClientNavbar() {
               </div>
 
               <span className="text-lg font-bold text-foreground">
-                Unkut
+                StoreAdmin
               </span>
             </Link>
+
+            {/* Desktop Navigation */}
+            <div className="hidden items-center gap-6 md:flex">
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className={`text-sm font-medium transition-colors ${
+                    isActive(link.href)
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
 
             {/* Actions */}
             <div className="flex items-center gap-1.5">
@@ -161,7 +190,7 @@ export function ClientNavbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Desktop Favorites */}
+              {/* Favorites */}
               {user && (
                 <Button
                   variant="ghost"
@@ -179,7 +208,7 @@ export function ClientNavbar() {
                 </Button>
               )}
 
-              {/* Desktop Cart */}
+              {/* Cart */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -240,6 +269,7 @@ export function ClientNavbar() {
 
       {/* =====================================================
           MOBILE BOTTOM TABS
+          Only visible on mobile
       ====================================================== */}
       <nav
         className="
@@ -267,7 +297,6 @@ export function ClientNavbar() {
             }`}
           >
             <Home className="h-5 w-5" />
-
             <span>{t("nav.home")}</span>
           </Link>
 
@@ -281,7 +310,6 @@ export function ClientNavbar() {
             }`}
           >
             <Store className="h-5 w-5" />
-
             <span>{t("nav.shop")}</span>
           </Link>
 
@@ -341,7 +369,6 @@ export function ClientNavbar() {
               }`}
             >
               <User className="h-5 w-5" />
-
               <span>Account</span>
             </Link>
           )}
