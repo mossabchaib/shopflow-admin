@@ -13,6 +13,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.dashboard": "Dashboard",
     "nav.cart": "Cart",
     "nav.favorites": "Favorites",
+    "home.newCollection": "New Collection", "home.shopNow": "Shop Now", "home.discover": "Discover", "home.collections": "Collections", "home.featured": "Featured", "home.view": "View", "home.heroImageAlt": "Shopping collection",
     // Hero
     "hero.title": "Discover Your Style",
     "hero.subtitle": "Shop the latest trends with premium quality products, curated just for you.",
@@ -286,6 +287,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.dashboard": "Tableau de bord",
     "nav.cart": "Panier",
     "nav.favorites": "Favoris",
+    "home.newCollection": "Nouvelle collection", "home.shopNow": "Acheter maintenant", "home.discover": "Découvrir", "home.collections": "Collections", "home.featured": "En vedette", "home.view": "Voir", "home.heroImageAlt": "Collection shopping",
     "hero.title": "Découvrez Votre Style",
     "hero.subtitle": "Explorez les dernières tendances avec des produits de qualité premium, sélectionnés pour vous.",
     "hero.cta": "Acheter Maintenant",
@@ -744,6 +746,20 @@ const translations: Record<Lang, Record<string, string>> = {
     "admin.value": "القيمة",
     "admin.expires": "ينتهي",
     "admin.usage": "الاستخدام",
+
+"home.newCollection": "مجموعة جديدة",
+
+"home.shopNow": "تسوق الآن",
+
+"home.discover": "اكتشف",
+
+"home.collections": "المجموعات",
+
+"home.featured": "مميز",
+
+"home.view": "عرض",
+
+"home.heroImageAlt": "مجموعة التسوق",
     "admin.inactive": "غير نشط",
     "admin.never": "أبداً",
     "admin.unlimited": "غير محدود",

@@ -16,7 +16,7 @@ export function Footer() {
               <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
                 <Store className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-lg">StoreAdmin</span>
+              <span className="font-bold text-lg">Unkut</span>
             </div>
             <p className="text-sm opacity-70 leading-relaxed max-w-xs">
               {t("footer.about")}
@@ -65,7 +65,7 @@ export function Footer() {
 
         <div className="border-t border-background/10 mt-10 pt-6 text-center">
           <p className="text-xs opacity-50">
-            © {year} StoreAdmin. {t("footer.rights")}
+            © {year} Unkut. {t("footer.rights")}
           </p>
         </div>
       </div>

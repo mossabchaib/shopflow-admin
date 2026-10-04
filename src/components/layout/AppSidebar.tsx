@@ -48,7 +48,7 @@ export function AppSidebar({ side = "left" }: { side?: "left" | "right" }) {
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <h1 className="text-sm font-bold text-sidebar-foreground truncate">StoreAdmin</h1>
+            <h1 className="text-sm font-bold text-sidebar-foreground truncate">Unkut</h1>
             <p className="text-xs text-sidebar-muted truncate">{t("sidebar.ecommerceDashboard")}</p>
           </div>
         )}

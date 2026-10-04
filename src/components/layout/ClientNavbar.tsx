@@ -1,15 +1,13 @@
-import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import {
   ShoppingCart,
   Heart,
-  Menu,
-  X,
   Store,
-  LogOut,
   LayoutDashboard,
   Globe,
+  Home,
+  User,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,9 +31,7 @@ const languages: { code: Lang; label: string }[] = [
 ];
 
 export function ClientNavbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,9 +40,7 @@ export function ClientNavbar() {
 
   const { count: guestCartCount } = useGuestCart();
 
-  /*
-   * Database cart count
-   */
+  /* Cart count */
   const { data: dbCartCount } = useQuery({
     queryKey: ["cart-count", user?.id],
 
@@ -76,9 +70,7 @@ export function ClientNavbar() {
     ? dbCartCount || 0
     : guestCartCount;
 
-  /*
-   * Admin check
-   */
+  /* Admin check */
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
 
@@ -103,204 +95,261 @@ export function ClientNavbar() {
     enabled: !!user,
   });
 
-  const links = [
-    {
-      href: "/",
-      label: t("nav.home"),
-    },
-    {
-      href: "/shop",
-      label: t("nav.shop"),
-    },
-  ];
-
-  const isActive = (path: string) =>
-    location.pathname === path;
-
-  /*
-   * Centralized logout
-   */
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate("/", { replace: true });
-    } catch (error) {
-      console.error("LOGOUT ERROR:", error);
+  const isActive = (path: string) => {
+    if (path === "/") {
+      return location.pathname === "/";
     }
+
+    return (
+      location.pathname === path ||
+      location.pathname.startsWith(`${path}/`)
+    );
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      {/* =====================================================
+          TOP NAVBAR
+      ====================================================== */}
+      <nav className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur-lg">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 w-full items-center justify-between">
 
-        <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link
+              to="/"
+              className="flex items-center gap-2"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+                <Store className="h-5 w-5 text-primary-foreground" />
+              </div>
 
-          {/* Logo */}
-          <Link
-            to="/"
-            className="flex items-center gap-2"
-          >
-            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-              <Store className="h-5 w-5 text-primary-foreground" />
-            </div>
+              <span className="text-lg font-bold text-foreground">
+                Unkut
+              </span>
+            </Link>
 
-            <span className="font-bold text-lg text-foreground">
-              StoreAdmin
-            </span>
-          </Link>
+            {/* Actions */}
+            <div className="flex items-center gap-1.5">
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`text-sm font-medium transition-colors ${
-                  isActive(link.href)
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+              {/* Language */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9"
+                  >
+                    <Globe className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent align="end">
+                  {languages.map((language) => (
+                    <DropdownMenuItem
+                      key={language.code}
+                      onClick={() => setLang(language.code)}
+                      className={
+                        lang === language.code
+                          ? "bg-primary/10 text-primary"
+                          : ""
+                      }
+                    >
+                      {language.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Desktop Favorites */}
+              {user && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden md:flex h-9 w-9"
+                  onClick={() => navigate("/favorites")}
+                >
+                  <Heart
+                    className={`h-4 w-4 ${
+                      isActive("/favorites")
+                        ? "fill-primary text-primary"
+                        : ""
+                    }`}
+                  />
+                </Button>
+              )}
+
+              {/* Desktop Cart */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden md:flex relative h-9 w-9"
+                onClick={() => navigate("/cart")}
               >
-                {link.label}
-              </Link>
-            ))}
-          </div>
+                <ShoppingCart className="h-4 w-4" />
 
-          {/* Actions */}
-          <div className="flex items-center gap-1.5">
+                {cartCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
+              </Button>
 
-            {/* Language */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              {/* Admin */}
+              {user && isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden md:flex h-9 w-9"
+                  onClick={() => navigate("/admin")}
+                  title={t("nav.dashboard")}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                </Button>
+              )}
+
+              {/* Account / Sign In */}
+              {user ? (
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9"
+                  onClick={() => navigate("/account")}
+                  title="Account"
                 >
-                  <Globe className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent align="end">
-                {languages.map((language) => (
-                  <DropdownMenuItem
-                    key={language.code}
-                    onClick={() => setLang(language.code)}
-                    className={
-                      lang === language.code
-                        ? "bg-primary/10 text-primary"
+                  <User
+                    className={`h-4 w-4 ${
+                      isActive("/account")
+                        ? "text-primary"
                         : ""
-                    }
-                  >
-                    {language.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Favorites */}
-            {user && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => navigate("/favorites")}
-              >
-                <Heart
-                  className={`h-4 w-4 ${
-                    isActive("/favorites")
-                      ? "fill-primary text-primary"
-                      : ""
-                  }`}
-                />
-              </Button>
-            )}
-
-            {/* Cart */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-9 w-9"
-              onClick={() => navigate("/cart")}
-            >
-              <ShoppingCart className="h-4 w-4" />
-
-              {cartCount > 0 && (
-                <span className="absolute -top-0.5 -end-0.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-medium">
-                  {cartCount}
-                </span>
-              )}
-            </Button>
-
-            {/* Admin Dashboard */}
-            {user && isAdmin && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => navigate("/admin")}
-                title={t("nav.dashboard")}
-              >
-                <LayoutDashboard className="h-4 w-4" />
-              </Button>
-            )}
-
-            {/* Authentication */}
-            {user ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                onClick={handleSignOut}
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                onClick={() => navigate("/auth")}
-              >
-                {t("nav.signin")}
-              </Button>
-            )}
-
-            {/* Mobile menu */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden h-9 w-9"
-              onClick={() => setMobileOpen((prev) => !prev)}
-            >
-              {mobileOpen ? (
-                <X className="h-5 w-5" />
+                    }`}
+                  />
+                </Button>
               ) : (
-                <Menu className="h-5 w-5" />
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/auth")}
+                >
+                  {t("nav.signin")}
+                </Button>
               )}
-            </Button>
-
+            </div>
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Mobile Navigation */}
-      {mobileOpen && (
-        <div className="md:hidden border-t bg-card p-4 space-y-2">
-          {links.map((link) => (
+      {/* =====================================================
+          MOBILE BOTTOM TABS
+      ====================================================== */}
+      <nav
+        className="
+          fixed
+          bottom-0
+          left-0
+          right-0
+          z-[100]
+          w-full
+          border-t
+          bg-card/95
+          backdrop-blur-xl
+          md:hidden
+        "
+      >
+        <div className="flex h-16 w-full items-center">
+
+          {/* HOME */}
+          <Link
+            to="/"
+            className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${
+              isActive("/")
+                ? "text-primary"
+                : "text-muted-foreground"
+            }`}
+          >
+            <Home className="h-5 w-5" />
+
+            <span>{t("nav.home")}</span>
+          </Link>
+
+          {/* SHOP */}
+          <Link
+            to="/shop"
+            className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${
+              isActive("/shop")
+                ? "text-primary"
+                : "text-muted-foreground"
+            }`}
+          >
+            <Store className="h-5 w-5" />
+
+            <span>{t("nav.shop")}</span>
+          </Link>
+
+          {/* CART */}
+          <button
+            type="button"
+            onClick={() => navigate("/cart")}
+            className={`relative flex h-full flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${
+              isActive("/cart")
+                ? "text-primary"
+                : "text-muted-foreground"
+            }`}
+          >
+            <div className="relative">
+              <ShoppingCart className="h-5 w-5" />
+
+              {cartCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-semibold text-primary-foreground">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </div>
+
+            <span>Cart</span>
+          </button>
+
+          {/* FAVORITES */}
+          {user && (
             <Link
-              key={link.href}
-              to={link.href}
-              onClick={() => setMobileOpen(false)}
-              className={`block py-2 px-3 rounded-lg text-sm font-medium ${
-                isActive(link.href)
-                  ? "bg-primary/10 text-primary"
+              to="/favorites"
+              className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${
+                isActive("/favorites")
+                  ? "text-primary"
                   : "text-muted-foreground"
               }`}
             >
-              {link.label}
+              <Heart
+                className={`h-5 w-5 ${
+                  isActive("/favorites")
+                    ? "fill-primary"
+                    : ""
+                }`}
+              />
+
+              <span>Favorites</span>
             </Link>
-          ))}
+          )}
+
+          {/* ACCOUNT */}
+          {user && (
+            <Link
+              to="/account"
+              className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${
+                isActive("/account")
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <User className="h-5 w-5" />
+
+              <span>Account</span>
+            </Link>
+          )}
         </div>
-      )}
-    </nav>
+
+        {/* iPhone safe area */}
+        <div className="h-[env(safe-area-inset-bottom)]" />
+      </nav>
+    </>
   );
 }
