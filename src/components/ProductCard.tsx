@@ -1,12 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useGuestCart } from "@/hooks/useGuestCart";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/lib/i18n";
 import { useState } from "react";
 
@@ -20,8 +17,6 @@ interface ProductCardProps {
 export function ProductCard({ product, index = 0, isFavorite = false, onFavoriteToggle }: ProductCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { addItem } = useGuestCart();
   const { t } = useI18n();
   const [favState, setFavState] = useState(isFavorite);
 
@@ -32,38 +27,30 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
 
   const price = product.discount_price || product.price;
 
-  const handleAddToCart = async (e: React.MouseEvent) => {
+  const handleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (user) {
-      const { error } = await supabase.from("cart_items").insert({
-        user_id: user.id,
-        product_id: product.id,
-        quantity: 1,
-      });
+    if (!user) return;
+
+    if (favState) {
+      const { error } = await supabase
+        .from("favorites")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("product_id", product.id);
       if (error) {
         toast({ title: t("common.error"), description: error.message, variant: "destructive" });
         return;
       }
-      queryClient.invalidateQueries({ queryKey: ["cart-count"] });
-    } else {
-      addItem(product.id, null, 1);
-    }
-    toast({ title: t("product.addToCart") + " ✓" });
-  };
-
-  const handleFavorite = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!user) {
-      toast({ title: t("common.pleaseSignIn"), variant: "destructive" });
-      return;
-    }
-    if (favState) {
-      await supabase.from("favorites").delete().eq("user_id", user.id).eq("product_id", product.id);
       setFavState(false);
     } else {
-      await supabase.from("favorites").insert({ user_id: user.id, product_id: product.id });
+      const { error } = await supabase
+        .from("favorites")
+        .insert({ user_id: user.id, product_id: product.id });
+      if (error) {
+        toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+        return;
+      }
       setFavState(true);
     }
     onFavoriteToggle?.(product.id, !favState);
@@ -84,25 +71,22 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          {/* Overlay actions */}
+
+          {/* Overlay */}
           <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors duration-300" />
-          <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-            <Button
-              size="sm"
-              className="flex-1 h-9 text-xs font-medium"
-              onClick={handleAddToCart}
+
+          {/* Fav button: logged-in users only. Always visible on mobile, hover-only on desktop */}
+          {user && (
+            <button
+              type="button"
+              onClick={handleFavorite}
+              aria-label={favState ? "Remove from favorites" : "Add to favorites"}
+              className="absolute top-3 end-3 h-8 w-8 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 hover:bg-card"
             >
-              <ShoppingCart className="h-3.5 w-3.5 me-1.5" />
-              {t("product.addToCart")}
-            </Button>
-          </div>
-          {/* Fav button */}
-          <button
-            onClick={handleFavorite}
-            className="absolute top-3 end-3 h-8 w-8 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-card"
-          >
-            <Heart className={`h-4 w-4 ${favState ? "fill-destructive text-destructive" : "text-foreground"}`} />
-          </button>
+              <Heart className={`h-4 w-4 ${favState ? "fill-destructive text-destructive" : "text-foreground"}`} />
+            </button>
+          )}
+
           {/* Discount badge */}
           {product.discount_price && (
             <div className="absolute top-3 start-3 bg-destructive text-destructive-foreground text-xs font-semibold px-2 py-1 rounded-md">
@@ -110,6 +94,7 @@ export function ProductCard({ product, index = 0, isFavorite = false, onFavorite
             </div>
           )}
         </div>
+
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">{product.categories?.name || ""}</p>
           <h3 className="text-sm font-medium text-foreground truncate leading-tight">{product.name}</h3>

@@ -1,4 +1,5 @@
 import { ReactNode, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -138,9 +139,25 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
           <header className="h-16 flex items-center justify-between border-b bg-card px-4 lg:px-6 sticky top-0 z-10">
-            {/* Sidebar trigger */}
-            <div className="flex items-center gap-2">
+            {/* Sidebar trigger + Logo */}
+            <div className="flex items-center gap-3 min-w-0">
               <SidebarTrigger className="text-muted-foreground" />
+
+              <Link
+                to="/admin"
+                aria-label="Ü R V O X Home"
+                className="flex shrink-0 items-center gap-2.5"
+              >
+                <img
+                  src="/Logo.png"
+                  alt="Ü R V O X Logo"
+                  className="h-9 w-9 object-contain"
+                />
+
+                <span className="hidden sm:inline whitespace-nowrap text-base lg:text-lg font-bold tracking-[0.14em] lg:tracking-[0.18em] text-foreground">
+                  Ü R V O X
+                </span>
+              </Link>
             </div>
 
             {/* Header actions */}

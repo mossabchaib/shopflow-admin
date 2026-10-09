@@ -21,7 +21,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@/components/ui/sidebar"
 
 const menuItems = [
   { titleKey: "sidebar.dashboard", url: "/admin", icon: LayoutDashboard },
@@ -44,11 +44,13 @@ export function AppSidebar({ side = "left" }: { side?: "left" | "right" }) {
     <Sidebar collapsible="icon" className={side === "right" ? "border-l-0" : "border-r-0"} side={side}>
       <div className="h-16 flex items-center gap-3 px-4 border-b border-sidebar-border">
         <div className="h-9 w-9 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
-          <Store className="h-5 w-5 text-sidebar-primary-foreground" />
-        </div>
+         <LayoutDashboard className="h-5 w-5 text-sidebar-primary-foreground" />
+         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <h1 className="text-sm font-bold text-sidebar-foreground truncate">Unkut</h1>
+              <h1 className="truncate text-sm font-bold tracking-[0.18em] text-sidebar-foreground">
+                Ü R V O X
+              </h1>
             <p className="text-xs text-sidebar-muted truncate">{t("sidebar.ecommerceDashboard")}</p>
           </div>
         )}

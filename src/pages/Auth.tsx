@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { Store, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
@@ -39,7 +39,7 @@ const Auth = () => {
         email: normalizedEmail,
         password,
       });
-console.log(data.session);
+
       if (error) {
         throw error;
       }
@@ -84,19 +84,25 @@ console.log(data.session);
       <div className="w-full max-w-md">
 
         {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center mb-4">
-            <Store className="h-7 w-7 text-primary-foreground" />
-          </div>
+        <Link
+          to="/"
+          aria-label="Ü R V O X Home"
+          className="flex flex-col items-center mb-8"
+        >
+          <img
+            src="/Logo.png"
+            alt="Ü R V O X Logo"
+            className="h-16 w-16 object-contain mb-4"
+          />
 
-          <h1 className="text-2xl font-bold text-foreground">
-            StoreAdmin
+          <h1 className="text-2xl font-bold tracking-[0.18em] text-foreground">
+            Ü R V O X
           </h1>
 
           <p className="text-sm text-muted-foreground mt-1">
             {t("auth.ecommerce")}
           </p>
-        </div>
+        </Link>
 
         {/* Login Card */}
         <div className="dashboard-card p-6">
