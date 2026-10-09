@@ -1,12 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpRight,
   Loader2,
-  ShoppingBag,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,50 +12,70 @@ import { ProductCard } from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 
+const HERO_IMAGES = [
+  "/image1.png",
+  "/image2.png",
+  "/image3.png",
+];
+
 const Home = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [productsByCategory, setProductsByCategory] = useState<
     Record<string, any[]>
   >({});
   const [loading, setLoading] = useState(true);
+  const [currentHeroImage, setCurrentHeroImage] = useState(0);
 
   const { t } = useI18n();
 
+  // Automatically change the hero image every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentHeroImage((prev) => (prev + 1) % HERO_IMAGES.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch categories and active products
   useEffect(() => {
     const fetchData = async () => {
-      const { data: cats } = await supabase
-        .from("categories")
-        .select("*")
-        .order("name");
+      try {
+        const { data: cats } = await supabase
+          .from("categories")
+          .select("*")
+          .order("name");
 
-      setCategories(cats || []);
+        setCategories(cats || []);
 
-      const { data: products } = await supabase
-        .from("products")
-        .select(
-          "*, product_images(image_url, is_primary), categories(name)"
-        )
-        .eq("status", "active")
-        .order("created_at", { ascending: false });
+        const { data: products } = await supabase
+          .from("products")
+          .select("*, product_images(image_url, is_primary), categories(name)")
+          .eq("status", "active")
+          .order("created_at", { ascending: false });
 
-      const grouped: Record<string, any[]> = {};
+        const grouped: Record<string, any[]> = {};
 
-      (products || []).forEach((p: any) => {
-        const catId = p.category_id;
+        (products || []).forEach((p: any) => {
+          const catId = p.category_id;
 
-        if (!catId) return;
+          if (!catId) return;
 
-        if (!grouped[catId]) {
-          grouped[catId] = [];
-        }
+          if (!grouped[catId]) {
+            grouped[catId] = [];
+          }
 
-        if (grouped[catId].length < 5) {
-          grouped[catId].push(p);
-        }
-      });
+          if (grouped[catId].length < 5) {
+            grouped[catId].push(p);
+          }
+        });
 
-      setProductsByCategory(grouped);
-      setLoading(false);
+        setProductsByCategory(grouped);
+      } catch (error) {
+        console.error("Failed to fetch homepage data:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
@@ -65,7 +83,7 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -81,33 +99,41 @@ const Home = () => {
 
   return (
     <main className="bg-background">
-
       {/* =========================================================
-          HERO
+          HERO SECTION - AUTOMATIC IMAGE SLIDER
       ========================================================= */}
       <section className="relative overflow-hidden">
         <div className="relative min-h-[600px] lg:min-h-[700px]">
 
-          {/* Hero image */}
-          <img
-            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=2200&q=90"
-            alt={t("home.heroImageAlt")}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          {/* Hero Images */}
+          <AnimatePresence mode="sync">
+            <motion.img
+              key={HERO_IMAGES[currentHeroImage]}
+              src={HERO_IMAGES[currentHeroImage]}
+              alt={t("home.heroImageAlt")}
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                opacity: { duration: 1 },
+                scale: { duration: 5, ease: "linear" },
+              }}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          </AnimatePresence>
 
-          {/* Dark cinematic overlay */}
-          <div className="absolute inset-0 bg-black/35" />
+          {/* Dark Overlays */}
+          <div className="absolute inset-0 bg-black/30" />
 
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-black/10" />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
-          {/* Decorative glow */}
+          {/* Decorative Glow */}
           <div className="absolute -right-40 top-1/2 h-[500px] w-[500px] -translate-y-1/2 rounded-full bg-white/10 blur-[120px]" />
 
-          {/* Hero content */}
+          {/* Hero Content */}
           <div className="relative mx-auto flex min-h-[600px] max-w-7xl items-center px-5 py-20 sm:px-8 lg:min-h-[700px] lg:px-12">
-
             <motion.div
               initial={{ opacity: 0, x: -35 }}
               animate={{ opacity: 1, x: 0 }}
@@ -117,7 +143,6 @@ const Home = () => {
               }}
               className="max-w-2xl text-white"
             >
-
               {/* Eyebrow */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -135,7 +160,7 @@ const Home = () => {
                 </span>
               </motion.div>
 
-              {/* Main title */}
+              {/* Main Title */}
               <h1 className="max-w-2xl text-5xl font-bold leading-[0.98] tracking-[-0.04em] sm:text-6xl md:text-7xl lg:text-[82px]">
                 {t("hero.title")}
               </h1>
@@ -145,7 +170,7 @@ const Home = () => {
                 {t("hero.subtitle")}
               </p>
 
-              {/* CTA */}
+              {/* Shop Button */}
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -153,32 +178,44 @@ const Home = () => {
                   delay: 0.35,
                   duration: 0.5,
                 }}
-                className="mt-9"
+                className="mt-9 flex justify-center"
               >
-             <div className="mt-9 flex justify-center">
-  <Button
-    size="lg"
-    asChild
-    className="group h-14 rounded-full bg-white px-5 text-[15px] font-semibold text-black shadow-[0_8px_30px_rgba(0,0,0,0.25)] transition-all duration-300 hover:bg-white hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
-  >
-    <Link
-      to="/shop"
-      className="flex items-center gap-3"
-    >
-      <span>{t("home.shopNow")}</span>
+                <Button
+                  size="lg"
+                  asChild
+                  className="group h-14 rounded-full bg-white px-5 text-[15px] font-semibold text-black shadow-[0_8px_30px_rgba(0,0,0,0.25)] transition-all duration-300 hover:bg-white hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+                >
+                  <Link to="/shop" className="flex items-center gap-3">
+                    <span>{t("home.shopNow")}</span>
 
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white transition-all duration-300 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5">
-        <ArrowRight className="h-4 w-4 rtl:rotate-180" />
-      </span>
-    </Link>
-  </Button>
-</div>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white transition-all duration-300 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5">
+                      <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+                    </span>
+                  </Link>
+                </Button>
               </motion.div>
-
             </motion.div>
           </div>
 
-          {/* Bottom scroll indicator */}
+          {/* Slider Indicators */}
+          <div className="absolute bottom-7 right-6 z-10 flex items-center gap-2 sm:right-10">
+            {HERO_IMAGES.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                aria-label={`Show image ${index + 1}`}
+                aria-pressed={currentHeroImage === index}
+                onClick={() => setCurrentHeroImage(index)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  currentHeroImage === index
+                    ? "w-9 bg-white"
+                    : "w-3 bg-white/50 hover:bg-white/80"
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Scroll Indicator */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -201,9 +238,7 @@ const Home = () => {
           CATEGORIES
       ========================================================= */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-
         <div className="mb-10 flex items-end justify-between gap-6">
-
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -277,7 +312,6 @@ const Home = () => {
 
                     <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
                       <div className="flex items-end justify-between gap-2">
-
                         <h3 className="text-base font-semibold text-white sm:text-lg">
                           {cat.name}
                         </h3>
@@ -285,7 +319,6 @@ const Home = () => {
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-all duration-300 group-hover:bg-white group-hover:text-black">
                           <ArrowUpRight className="h-4 w-4" />
                         </div>
-
                       </div>
                     </div>
                   </Link>
@@ -310,9 +343,7 @@ const Home = () => {
       ========================================================= */}
       <section className="border-t bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-
           <div className="space-y-20">
-
             {categories.map((cat) => {
               const prods = productsByCategory[cat.id] || [];
 
@@ -335,9 +366,7 @@ const Home = () => {
                     duration: 0.6,
                   }}
                 >
-
                   <div className="mb-7 flex items-end justify-between gap-4">
-
                     <div>
                       <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
                         {t("home.featured")}
@@ -362,7 +391,6 @@ const Home = () => {
 
                       <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
                     </Link>
-
                   </div>
 
                   {prods.length === 0 ? (
@@ -373,7 +401,6 @@ const Home = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-5 md:grid-cols-4 lg:grid-cols-5">
-
                       {prods.map((p, pi) => (
                         <motion.div
                           key={p.id}
@@ -393,25 +420,17 @@ const Home = () => {
                             delay: pi * 0.05,
                           }}
                         >
-                          <ProductCard
-                            product={p}
-                            index={pi}
-                          />
+                          <ProductCard product={p} index={pi} />
                         </motion.div>
                       ))}
-
                     </div>
                   )}
-
                 </motion.div>
               );
             })}
-
           </div>
-
         </div>
       </section>
-
     </main>
   );
 };
